@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Tanz im Dschungel</title>
+<meta name="theme-color" content="#E7EBDE" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<link rel="icon" href="/icon-192.png" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Dschungel" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="mobile-web-app-capable" content="yes" />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,600&family=Karla:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --paper:#E7EBDE; --card:#FAFBF3; --ink:#1B2A20; --soft:#5F6E5F;
+  --green:#33604A; --stem:#8AA57C; --bloom:#A8436A; --line:#C9D2BC;
+}
+*{box-sizing:border-box;}
+html,body{margin:0; background:var(--paper);}
+body{
+  color:var(--ink); font-family:'Karla',ui-sans-serif,system-ui,sans-serif;
+  font-size:15px; line-height:1.5;
+  padding:20px 16px calc(40px + env(safe-area-inset-bottom));
+  max-width:760px; margin:0 auto; min-height:100vh;
+}
+h1{font-family:'Newsreader',Georgia,serif; font-weight:600; font-size:30px; margin:0; letter-spacing:-.01em;}
+h2{font-family:'Newsreader',Georgia,serif; font-weight:600; font-size:21px; margin:0 0 2px;}
+h3{font-family:'Newsreader',Georgia,serif; font-weight:600; font-size:17px; margin:0;}
+p{margin:0 0 10px;}
+button{font-family:inherit; font-size:14px; cursor:pointer;}
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible{outline:2px solid var(--bloom); outline-offset:2px;}
+input,textarea,select{font-family:inherit; font-size:15px; padding:9px 11px; border:1px solid var(--line);
+  border-radius:3px; background:var(--card); color:var(--ink); min-width:0;}
+input,textarea{flex:1; width:100%;}
+input[type=time]{flex:0 0 auto; width:auto;}
+input[type=checkbox]{flex:none; width:17px; height:17px; accent-color:var(--green);}
+select{font-size:14px; padding:8px 10px; max-width:100%;}
+
+.boot{padding:60px 0; color:var(--soft);}
+.gate{padding:32px 0;}
+.gate .lead{color:var(--soft); max-width:46ch; margin-bottom:22px;}
+.gate h2{margin:22px 0 10px;}
+.gateLabel{font-size:13px; color:var(--soft); margin:18px 0 8px;}
+.chips{display:flex; flex-wrap:wrap; gap:8px;}
+.chip{background:var(--card); border:1px solid var(--line); border-radius:999px; padding:7px 14px; color:var(--ink);}
+.chip:hover{border-color:var(--green);}
+
+.top{margin-bottom:18px;}
+.topline{display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:14px;}
+.who{background:none; border:none; color:var(--green); font-weight:600; padding:0; text-align:right;}
+.whoHint{color:var(--soft); font-weight:400; font-size:12px; margin-left:6px;}
+
+.ribbon{background:var(--card); border:1px solid var(--line); border-radius:4px; padding:12px 12px 8px;}
+.ribLabel{font-size:12px; color:var(--soft); margin-bottom:4px;}
+.ribRow{display:flex; gap:2px; margin-bottom:10px;}
+.seg{flex:1 1 0; height:26px; border:none; border-radius:2px; position:relative; color:var(--ink); font-size:11px; padding:0;}
+.seg span{position:absolute; left:4px; top:6px; opacity:.75;}
+.seg.leer{background:#DDE3D2;}
+.seg.halb{background:var(--stem);}
+.seg.voll{background:var(--green); color:#F2F5EC;}
+.ribScale{display:flex; justify-content:space-between; font-size:11px; color:var(--soft); border-top:1px solid var(--line); padding-top:5px;}
+
+.tabs{display:flex; flex-wrap:wrap; gap:4px; margin:16px 0 14px; border-bottom:1px solid var(--line);}
+.tab{background:none; border:none; padding:8px 10px; color:var(--soft); border-bottom:2px solid transparent; margin-bottom:-1px;}
+.tab.on{color:var(--ink); border-bottom-color:var(--bloom); font-weight:600;}
+.badge{display:inline-block; margin-left:6px; background:var(--stem); color:#1B2A20; border-radius:999px; font-size:11px; padding:1px 6px;}
+
+.block{margin-bottom:26px;}
+.hint{color:var(--soft); font-size:13px;}
+.tally{color:var(--green); font-weight:600; margin-bottom:16px;}
+.empty{color:var(--soft); font-style:italic; padding:10px 0; list-style:none;}
+.sub{margin:18px 0 6px; color:var(--soft);}
+.problem{background:#F6E2E7; border-left:3px solid var(--bloom); padding:8px 12px; font-size:14px; margin-bottom:12px;}
+
+.slots{list-style:none; padding:0; margin:10px 0 0;}
+.slot{display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid var(--line);
+  border-left:3px solid var(--line); border-radius:3px; padding:10px 12px; margin-bottom:6px;}
+.slot.mine{border-left-color:var(--bloom); background:#FBF4F7;}
+.slot.full{opacity:.7;}
+.time{font-variant-numeric:tabular-nums; font-weight:600; min-width:104px;}
+.people{flex:1; display:flex; flex-wrap:wrap; gap:6px; align-items:center;}
+.people em{color:var(--soft); font-size:13px;}
+.pill{background:#E3EAD8; border-radius:999px; padding:2px 9px; font-size:13px;}
+.in,.out{border-radius:3px; padding:6px 12px; border:1px solid var(--green); background:var(--green); color:#F4F7EE; white-space:nowrap;}
+.out{background:none; color:var(--green);}
+.in:disabled{background:none; border-color:var(--line); color:var(--soft); cursor:default;}
+
+.row{display:flex; gap:8px; margin:10px 0;}
+.row.wrap{flex-wrap:wrap;}
+.grow{flex:1 1 160px;}
+.form{display:flex; flex-direction:column; gap:8px; margin:10px 0 16px;}
+.go{background:var(--green); color:#F4F7EE; border:1px solid var(--green); border-radius:3px; padding:9px 16px; white-space:nowrap;}
+.go:disabled{background:none; color:var(--soft); border-color:var(--line); cursor:default;}
+.go.wide{align-self:flex-start;}
+.link{background:none; border:none; color:var(--soft); text-decoration:underline; padding:2px 4px; white-space:nowrap;}
+.link:hover{color:var(--bloom);}
+
+.cards{list-style:none; padding:0; margin:10px 0 0;}
+.card{display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid var(--line);
+  border-radius:3px; padding:10px 12px; margin-bottom:6px;}
+.card.edit{flex-wrap:wrap;}
+.card.edit input{flex:1 1 160px;}
+.card label{display:flex; align-items:center; gap:10px; flex:1; cursor:pointer;}
+.todo.done .txt{text-decoration:line-through; color:var(--soft);}
+.by{font-size:12px; color:var(--soft); white-space:nowrap;}
+.group{margin-bottom:14px;}
+.group h3 .link{font-size:12px; margin-left:6px;}
+.count{font-family:'Karla',sans-serif; font-size:12px; color:var(--soft); font-weight:400;}
+.card.ws{align-items:flex-start;}
+.card.ws > div{flex:1;}
+.desc{margin:6px 0 0; max-width:62ch; white-space:pre-wrap;}
+
+.timetable{list-style:none; padding:0; margin:14px 0 0; border-left:2px solid var(--stem);}
+.timetable li{display:flex; align-items:center; gap:12px; padding:9px 0 9px 14px; position:relative;}
+.timetable li.empty::before{display:none;}
+.timetable li::before{content:''; position:absolute; left:-5px; top:50%; width:8px; height:8px; border-radius:50%;
+  background:var(--green); transform:translateY(-50%);}
+.slotTime{font-variant-numeric:tabular-nums; color:var(--soft); min-width:106px;}
+.djName{flex:1; font-family:'Newsreader',Georgia,serif; font-size:18px;}
+
+.foot{display:flex; justify-content:space-between; align-items:center; gap:10px;
+  border-top:1px solid var(--line); padding-top:10px; font-size:12px; color:var(--soft); margin-top:24px;}
+
+@media (max-width:560px){
+  .slot{flex-wrap:wrap;}
+  .time{min-width:auto;}
+  .people{flex-basis:100%; order:3;}
+  .timetable li{flex-wrap:wrap;}
+}
+@media (prefers-reduced-motion:reduce){ *{transition:none !important;} }
+</style>
+</head>
+<body>
+<div id="app"><p class="boot">Lade die Party …</p></div>
+
+<script type="module">
+/* ======================= EINSTELLUNGEN ======================= */
+const SUPABASE_URL = "https://jgvkequwqvkpyqcpntvo.supabase.co";
+const SUPABASE_KEY = "sb_publishable_xw8Cd5xLxAhba-y50jHe7g_S34PVoHh";
+const PASSWORT     = "doppelsechs";
+/* ============================================================= */
+
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const GUEST_LIMIT = 9;
+const EINLASS = [[20,21],[21,22],[22,23],[23,24],[24,25],[25,26]];
+const BAR     = [[16,18],[18,20],[20,22],[22,24],[24,26],[26,28]];
+const SHIFTS = [
+  ...BAR.map(s => ({ id:"b"+s[0], kind:"bar", span:s, seats:2 })),
+  ...EINLASS.map(s => ({ id:"e"+s[0], kind:"einlass", span:s, seats:1 })),
+];
+const hh = h => String(h % 24).padStart(2,"0") + ":00";
+const spanLabel = s => `${hh(s[0])} – ${hh(s[1])}`;
+const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+
+let S = { hosts:[], guests:[], signups:[], todos:[], djs:[], workshops:[] };
+let me = localStorage.getItem("dsch:me");
+let tab = "schichten";
+let ui = { editGuest:null, editHost:null, busy:false, problem:null, loaded:false };
+const app = document.getElementById("app");
+
+/* ------------------------------ Daten ------------------------------ */
+
+function withTimeout(p, ms = 15000) {
+  return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))]);
+}
+
+async function attempt(fn, tries = 4) {
+  let last;
+  for (let i = 0; i < tries; i++) {
+    try { return await withTimeout(fn()); }
+    catch (e) { last = e; await new Promise(r => setTimeout(r, 400 * (i + 1))); }
+  }
+  throw last;
+}
+
+async function load() {
+  try {
+    const [h, g, s, t, d, w] = await attempt(() => Promise.all([
+      sb.from("hosts").select("*").order("name"),
+      sb.from("guests").select("*").order("created_at"),
+      sb.from("shift_signups").select("*").order("created_at"),
+      sb.from("todos").select("*").order("created_at"),
+      sb.from("djs").select("*").order("start_time"),
+      sb.from("workshops").select("*").order("created_at"),
+    ]));
+    const err = [h,g,s,t,d,w].find(r => r.error);
+    if (err) throw err.error;
+    S = { hosts:h.data, guests:g.data, signups:s.data, todos:t.data, djs:d.data, workshops:w.data };
+    ui.problem = null;
+  } catch (e) {
+    ui.problem = "Die Daten kommen gerade nicht durch. Zieh die Seite runter oder tipp auf „Neu laden“.";
+  }
+  ui.loaded = true;
+  render();
+}
+
+async function write(fn) {
+  if (ui.busy) return;
+  ui.busy = true; render();
+  try {
+    const res = await attempt(fn);
+    if (res && res.error) throw res.error;
+    ui.problem = null;
+  } catch (e) {
+    ui.problem = "Speichern hat nicht geklappt. Prüf die Verbindung und versuch es nochmal.";
+  }
+  ui.busy = false;
+  await load();
+}
+
+const hostName = id => S.hosts.find(h => h.id === id)?.name || "Unbekannt";
+const seatsOf = sid => S.signups.filter(x => x.shift_id === sid);
+const guestsOf = hid => S.guests.filter(g => g.host_id === hid);
+
+/* ---------------------------- Aktionen ---------------------------- */
+
+const actions = {
+  async createHost(name) {
+    const { data, error } = await withTimeout(sb.from("hosts").insert({ name }).select().single());
+    if (error) { ui.problem = "Anlegen hat nicht geklappt."; render(); return; }
+    me = data.id; localStorage.setItem("dsch:me", me);
+    await load();
+  },
+  claim(id) { me = id; if (id) localStorage.setItem("dsch:me", id); else localStorage.removeItem("dsch:me"); render(); },
+  toggleShift(sid) {
+    const shift = SHIFTS.find(s => s.id === sid);
+    const mine = S.signups.find(x => x.shift_id === sid && x.host_id === me);
+    if (mine) return write(() => sb.from("shift_signups").delete().eq("id", mine.id));
+    if (seatsOf(sid).length >= shift.seats) return;
+    return write(() => sb.from("shift_signups").insert({ shift_id: sid, host_id: me }));
+  },
+  addGuest(name) {
+    if (guestsOf(me).length >= GUEST_LIMIT) return;
+    return write(() => sb.from("guests").insert({ name, host_id: me }));
+  },
+  updateGuest(id, patch) { return write(() => sb.from("guests").update(patch).eq("id", id)); },
+  deleteGuest(id) { return write(() => sb.from("guests").delete().eq("id", id)); },
+  renameHost(id, name) { return write(() => sb.from("hosts").update({ name }).eq("id", id)); },
+  addTodo(text) { return write(() => sb.from("todos").insert({ text, created_by: me })); },
+  toggleTodo(id) {
+    const t = S.todos.find(x => x.id === id);
+    return write(() => sb.from("todos").update({ done: !t.done, done_by: t.done ? null : me }).eq("id", id));
+  },
+  deleteTodo(id) { return write(() => sb.from("todos").delete().eq("id", id)); },
+  addDj(name, start_time, end_time) { return write(() => sb.from("djs").insert({ name, start_time, end_time })); },
+  deleteDj(id) { return write(() => sb.from("djs").delete().eq("id", id)); },
+  addWorkshop(person, title, description) { return write(() => sb.from("workshops").insert({ person, title, description })); },
+  deleteWorkshop(id) { return write(() => sb.from("workshops").delete().eq("id", id)); },
+};
+
+/* ---------------------------- Ansichten ---------------------------- */
+
+function viewPassword() {
+  return `<div class="gate">
+    <h1>Tanz im Dschungel</h1>
+    <p class="lead">Die Seite ist für unsere Runde. Gib das Wort ein, das ihr euch geschickt habt.</p>
+    <div class="row">
+      <input id="pw" type="password" placeholder="Passwort" autocomplete="current-password" />
+      <button class="go" data-act="pw">Rein</button>
+    </div>
+    <p class="hint" id="pwErr"></p>
+  </div>`;
+}
+
+function viewGate() {
+  const sorted = [...S.hosts].sort((a,b) => a.name.localeCompare(b.name, "de"));
+  return `<div class="gate">
+    <h1>Tanz im Dschungel</h1>
+    <p class="lead">Sag, wer du bist. Danach steht dein Name automatisch an deinen Schichten, Gästen und To-dos.</p>
+    ${sorted.length ? `
+      <h2>Wähl dich aus</h2>
+      <div class="chips">${sorted.map(h => `<button class="chip" data-act="claim" data-id="${h.id}">${esc(h.name)}</button>`).join("")}</div>
+      <p class="gateLabel">Nicht dabei? Dann leg dich neu an.</p>
+    ` : `<h2>Du bist die erste Person hier</h2>`}
+    <div class="row">
+      <input id="newHost" placeholder="Dein Name" />
+      <button class="go" data-act="newHost">Loslegen</button>
+    </div>
+  </div>`;
+}
+
+function ribbon() {
+  const seg = s => {
+    const n = seatsOf(s.id).length;
+    const cls = n === 0 ? "leer" : n < s.seats ? "halb" : "voll";
+    return `<button class="seg ${cls}" style="flex-grow:${s.span[1]-s.span[0]}" data-act="tab" data-tab="schichten" title="${spanLabel(s.span)}"><span>${hh(s.span[0])}</span></button>`;
+  };
+  const row = (kind, from, to) => `<div class="ribRow" style="margin-left:${(from-16)/12*100}%; width:${(to-from)/12*100}%">
+    ${SHIFTS.filter(s => s.kind === kind).map(seg).join("")}</div>`;
+  return `<div class="ribbon">
+    <div class="ribLabel">Bar</div>${row("bar",16,28)}
+    <div class="ribLabel">Einlass</div>${row("einlass",20,26)}
+    <div class="ribScale"><span>16:00</span><span>20:00</span><span>00:00</span><span>04:00</span></div>
+  </div>`;
+}
+
+function viewSchichten() {
+  const open = SHIFTS.reduce((n,s) => n + (s.seats - seatsOf(s.id).length), 0);
+  const mine = SHIFTS.filter(s => seatsOf(s.id).some(x => x.host_id === me)).length;
+  const block = (kind, title, hint) => `<section class="block">
+    <h2>${title}</h2><p class="hint">${hint}</p>
+    <ul class="slots">${SHIFTS.filter(s => s.kind === kind).map(s => {
+      const list = seatsOf(s.id);
+      const isMine = list.some(x => x.host_id === me);
+      const full = list.length >= s.seats && !isMine;
+      const free = s.seats - list.length;
+      return `<li class="slot${isMine ? " mine" : ""}${full ? " full" : ""}">
+        <span class="time">${spanLabel(s.span)}</span>
+        <span class="people">
+          ${list.length === 0 ? "<em>frei</em>" : list.map(x => `<span class="pill">${esc(hostName(x.host_id))}</span>`).join("")}
+          ${list.length && free > 0 ? `<em>+${free} frei</em>` : ""}
+        </span>
+        <button class="${isMine ? "out" : "in"}" data-act="shift" data-id="${s.id}" ${full ? "disabled" : ""}>
+          ${isMine ? "Austragen" : full ? "Voll" : "Eintragen"}</button>
+      </li>`;
+    }).join("")}</ul></section>`;
+  return `<p class="tally">${open === 0 ? "Alle Schichten besetzt." : open + " Plätze noch frei."}
+    ${mine ? ` Du hast ${mine} ${mine === 1 ? "Schicht" : "Schichten"}.` : ""}</p>
+    ${block("bar","Bar","16:00 bis 4:00 Uhr, je zwei Stunden zu zweit.")}
+    ${block("einlass","Einlass","20:00 bis 2:00 Uhr, je eine Stunde allein.")}`;
+}
+
+function guestRow(g) {
+  if (ui.editGuest === g.id) {
+    return `<li class="card edit">
+      <input id="gname" value="${esc(g.name)}" />
+      <select id="ghost">${S.hosts.map(h => {
+        const used = S.guests.filter(x => x.host_id === h.id && x.id !== g.id).length;
+        return `<option value="${h.id}" ${h.id === g.host_id ? "selected" : ""} ${used >= GUEST_LIMIT ? "disabled" : ""}>${esc(h.name)} (${used}/${GUEST_LIMIT})</option>`;
+      }).join("")}</select>
+      <button class="link" data-act="saveGuest" data-id="${g.id}">Speichern</button>
+      <button class="link" data-act="cancelGuest">Abbrechen</button>
+    </li>`;
+  }
+  return `<li class="card">
+    <span class="grow">${esc(g.name)}</span>
+    <button class="link" data-act="editGuest" data-id="${g.id}">Ändern</button>
+    <button class="link" data-act="delGuest" data-id="${g.id}">Entfernen</button>
+  </li>`;
+}
+
+function hostHead(h, count) {
+  if (ui.editHost === h.id) {
+    return `<div class="row">
+      <input id="hname" value="${esc(h.name)}" />
+      <button class="link" data-act="saveHost" data-id="${h.id}">Speichern</button>
+      <button class="link" data-act="cancelHost">Abbrechen</button>
+    </div>`;
+  }
+  return `<h3>${esc(h.name)} <span class="count">${count}/${GUEST_LIMIT}</span>
+    <button class="link" data-act="editHost" data-id="${h.id}">Umbenennen</button></h3>`;
+}
+
+function viewGaeste() {
+  const mineList = guestsOf(me);
+  const left = GUEST_LIMIT - mineList.length;
+  const myHost = S.hosts.find(h => h.id === me);
+  const others = S.hosts.filter(h => h.id !== me && guestsOf(h.id).length);
+  return `<p class="tally">${S.guests.length} Gäste eingetragen. Du hast noch ${left} von ${GUEST_LIMIT} Plätzen.</p>
+  <section class="block">
+    <h2>Deine Gäste</h2>
+    ${myHost ? hostHead(myHost, mineList.length) : ""}
+    <div class="row">
+      <input id="guestName" placeholder="Name deines Gasts" ${left <= 0 ? "disabled" : ""} />
+      <button class="go" data-act="addGuest" ${left <= 0 ? "disabled" : ""}>Hinzufügen</button>
+    </div>
+    ${left <= 0 ? `<p class="hint">Deine neun Plätze sind vergeben. Nimm jemanden raus oder schieb ihn auf jemand anderen.</p>` : ""}
+    <ul class="cards">${mineList.length ? mineList.map(guestRow).join("") : `<li class="empty">Noch niemand eingeladen.</li>`}</ul>
+  </section>
+  <section class="block">
+    <h2>Gäste der anderen</h2>
+    <p class="hint">Alle dürfen hier korrigieren, umhängen und streichen – bitte nur in Absprache.</p>
+    ${others.length ? others.map(h => `<div class="group">${hostHead(h, guestsOf(h.id).length)}
+      <ul class="cards">${guestsOf(h.id).map(guestRow).join("")}</ul></div>`).join("")
+      : `<p class="empty">Noch hat niemand sonst Gäste eingetragen.</p>`}
+  </section>`;
+}
+
+function viewTodos() {
+  const offen = S.todos.filter(t => !t.done);
+  const fertig = S.todos.filter(t => t.done);
+  const row = t => `<li class="card todo${t.done ? " done" : ""}">
+    <label><input type="checkbox" ${t.done ? "checked" : ""} data-act="todo" data-id="${t.id}" />
+      <span class="txt">${esc(t.text)}</span></label>
+    <span class="by">${t.done ? (t.done_by ? "erledigt von " + esc(hostName(t.done_by)) : "erledigt") : "von " + esc(hostName(t.created_by))}</span>
+    <button class="link" data-act="delTodo" data-id="${t.id}">Löschen</button>
+  </li>`;
+  return `<section class="block">
+    <h2>To-dos</h2>
+    <div class="row">
+      <input id="todoText" placeholder="Was muss noch passieren?" />
+      <button class="go" data-act="addTodo">Hinzufügen</button>
+    </div>
+    <ul class="cards">${offen.length ? offen.map(row).join("")
+      : (fertig.length ? "" : `<li class="empty">Noch nichts offen. Schreib das erste rein.</li>`)}</ul>
+    ${fertig.length ? `<h3 class="sub">Erledigt</h3><ul class="cards">${fertig.map(row).join("")}</ul>` : ""}
+  </section>`;
+}
+
+const sortKey = t => { const [h,m] = (t || "00:00").split(":").map(Number); const v = h*60+m; return v < 720 ? v + 1440 : v; };
+
+function viewDjs() {
+  const sorted = [...S.djs].sort((a,b) => sortKey(a.start_time) - sortKey(b.start_time));
+  return `<section class="block">
+    <h2>DJ-Timetable</h2>
+    <p class="hint">Start- und Endzeit frei wählbar. Überschneidungen klärt ihr untereinander.</p>
+    <div class="row wrap">
+      <input id="djName" class="grow" placeholder="Wer legt auf?" />
+      <input id="djStart" type="time" aria-label="Start" />
+      <input id="djEnd" type="time" aria-label="Ende" />
+      <button class="go" data-act="addDj">Eintragen</button>
+    </div>
+    <ol class="timetable">${sorted.length ? sorted.map(d => `<li>
+      <span class="slotTime">${esc(d.start_time)} – ${esc(d.end_time)}</span>
+      <span class="djName">${esc(d.name)}</span>
+      <button class="link" data-act="delDj" data-id="${d.id}">Entfernen</button></li>`).join("")
+      : `<li class="empty">Noch kein Set eingetragen.</li>`}</ol>
+  </section>`;
+}
+
+function viewWorkshops() {
+  return `<section class="block">
+    <h2>Workshops</h2>
+    <div class="form">
+      <input id="wsPerson" placeholder="Name" />
+      <input id="wsTitle" placeholder="Titel" />
+      <textarea id="wsDesc" rows="3" placeholder="Worum geht's? Was braucht ihr?"></textarea>
+      <button class="go wide" data-act="addWs">Workshop eintragen</button>
+    </div>
+    <ul class="cards">${S.workshops.length ? S.workshops.map(w => `<li class="card ws">
+      <div><h3>${esc(w.title)}</h3><p class="by">mit ${esc(w.person)}</p>
+      ${w.description ? `<p class="desc">${esc(w.description)}</p>` : ""}</div>
+      <button class="link" data-act="delWs" data-id="${w.id}">Entfernen</button></li>`).join("")
+      : `<li class="empty">Noch keine Workshops. Trag deinen ein.</li>`}</ul>
+  </section>`;
+}
+
+/* ----------------------------- Rendern ----------------------------- */
+
+function render() {
+  const focused = document.activeElement?.id;
+  const pos = document.activeElement?.selectionStart;
+
+  if (localStorage.getItem("dsch:pw") !== PASSWORT) { app.innerHTML = viewPassword(); return restore(focused, pos); }
+  if (!ui.loaded) { app.innerHTML = `<p class="boot">Lade die Party …</p>`; return; }
+  if (!me || !S.hosts.some(h => h.id === me)) { app.innerHTML = viewGate(); return restore(focused, pos); }
+
+  const openTodos = S.todos.filter(t => !t.done).length;
+  const tabs = [["schichten","Schichten"],["gaeste","Gästeliste"],["todos","To-dos"],["djs","DJ-Timetable"],["workshops","Workshops"]];
+  const body = { schichten:viewSchichten, gaeste:viewGaeste, todos:viewTodos, djs:viewDjs, workshops:viewWorkshops }[tab]();
+
+  app.innerHTML = `
+    <header class="top">
+      <div class="topline"><h1>Tanz im Dschungel</h1>
+        <button class="who" data-act="switch">${esc(hostName(me))}<span class="whoHint">wechseln</span></button></div>
+      ${ribbon()}
+    </header>
+    <nav class="tabs">${tabs.map(([k,t]) => `<button class="tab${tab === k ? " on" : ""}" data-act="tab" data-tab="${k}">${t}
+      ${k === "gaeste" && S.guests.length ? `<span class="badge">${S.guests.length}</span>` : ""}
+      ${k === "todos" && openTodos ? `<span class="badge">${openTodos}</span>` : ""}</button>`).join("")}</nav>
+    ${ui.problem ? `<p class="problem">${ui.problem}</p>` : ""}
+    <main>${body}</main>
+    <footer class="foot"><span>${ui.busy ? "Speichere …" : "Alle sehen dieselben Listen."}</span>
+      <button class="link" data-act="reload">Neu laden</button></footer>`;
+  restore(focused, pos);
+}
+
+function restore(id, pos) {
+  if (!id) return;
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.focus();
+  if (pos != null && el.setSelectionRange) { try { el.setSelectionRange(pos, pos); } catch {} }
+}
+
+const val = id => (document.getElementById(id)?.value || "").trim();
+
+/* --------------------------- Interaktion --------------------------- */
+
+document.addEventListener("click", e => {
+  const el = e.target.closest("[data-act]");
+  if (!el) return;
+  const id = el.dataset.id;
+  switch (el.dataset.act) {
+    case "pw": {
+      if (val("pw") === PASSWORT) { localStorage.setItem("dsch:pw", PASSWORT); render(); load(); }
+      else document.getElementById("pwErr").textContent = "Das war nicht das Wort. Frag nochmal in der Gruppe nach.";
+      break;
+    }
+    case "claim": actions.claim(id); break;
+    case "newHost": { const n = val("newHost"); if (!n) break;
+      const hit = S.hosts.find(h => h.name.toLowerCase() === n.toLowerCase());
+      hit ? actions.claim(hit.id) : actions.createHost(n); break; }
+    case "switch": actions.claim(null); break;
+    case "tab": tab = el.dataset.tab; render(); break;
+    case "reload": load(); break;
+    case "shift": actions.toggleShift(id); break;
+    case "addGuest": { const n = val("guestName"); if (n) actions.addGuest(n); break; }
+    case "editGuest": ui.editGuest = id; render(); break;
+    case "cancelGuest": ui.editGuest = null; render(); break;
+    case "saveGuest": { const name = val("gname"); const host_id = document.getElementById("ghost").value;
+      ui.editGuest = null; if (name) actions.updateGuest(id, { name, host_id }); else render(); break; }
+    case "delGuest": actions.deleteGuest(id); break;
+    case "editHost": ui.editHost = id; render(); break;
+    case "cancelHost": ui.editHost = null; render(); break;
+    case "saveHost": { const name = val("hname"); ui.editHost = null;
+      if (name) actions.renameHost(id, name); else render(); break; }
+    case "addTodo": { const t = val("todoText"); if (t) actions.addTodo(t); break; }
+    case "todo": actions.toggleTodo(id); break;
+    case "delTodo": actions.deleteTodo(id); break;
+    case "addDj": { const n = val("djName"), s = val("djStart"), t = val("djEnd");
+      if (n && s && t) actions.addDj(n, s, t); break; }
+    case "delDj": actions.deleteDj(id); break;
+    case "addWs": { const p = val("wsPerson"), t = val("wsTitle");
+      if (p && t) actions.addWorkshop(p, t, val("wsDesc")); break; }
+    case "delWs": actions.deleteWorkshop(id); break;
+  }
+});
+
+document.addEventListener("keydown", e => {
+  if (e.key !== "Enter" || e.target.tagName === "TEXTAREA") return;
+  const map = { pw:"pw", newHost:"newHost", guestName:"addGuest", todoText:"addTodo" };
+  const act = map[e.target.id];
+  if (act) { e.preventDefault(); document.querySelector(`[data-act="${act}"]`)?.click(); }
+  if (e.target.id === "gname") document.querySelector('[data-act="saveGuest"]')?.click();
+  if (e.target.id === "hname") document.querySelector('[data-act="saveHost"]')?.click();
+});
+
+setInterval(() => { if (document.visibilityState === "visible" && !ui.busy && !ui.editGuest && !ui.editHost) load(); }, 20000);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") load(); });
+
+if (localStorage.getItem("dsch:pw") === PASSWORT) load(); else render();
+</script>
+</body>
+</html>
