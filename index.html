@@ -105,6 +105,7 @@ select{font-size:14px; padding:8px 10px; max-width:100%;}
 .card.edit input{flex:1 1 160px;}
 .card label{display:flex; align-items:center; gap:10px; flex:1; cursor:pointer;}
 .todo.done .txt{text-decoration:line-through; color:var(--soft);}
+.betrag{font-variant-numeric:tabular-nums; white-space:nowrap;}
 .by{font-size:12px; color:var(--soft); white-space:nowrap;}
 .group{margin-bottom:14px;}
 .group h3 .link{font-size:12px; margin-left:6px;}
@@ -157,10 +158,10 @@ const hh = h => String(h % 24).padStart(2,"0") + ":00";
 const spanLabel = s => `${hh(s[0])} – ${hh(s[1])}`;
 const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
 
-let S = { hosts:[], guests:[], signups:[], todos:[], djs:[], workshops:[] };
+let S = { hosts:[], guests:[], signups:[], todos:[], djs:[], workshops:[], expenses:[], note:"" };
 let me = localStorage.getItem("dsch:me");
 let tab = "schichten";
-let ui = { editGuest:null, editHost:null, busy:false, problem:null, loaded:false };
+let ui = { editGuest:null, editHost:null, busy:false, problem:null, loaded:false, noteDraft:null };
 const app = document.getElementById("app");
 
 /* ------------------------------ Daten ------------------------------ */
@@ -180,17 +181,20 @@ async function attempt(fn, tries = 4) {
 
 async function load() {
   try {
-    const [h, g, s, t, d, w] = await attempt(() => Promise.all([
+    const [h, g, s, t, d, w, x, n] = await attempt(() => Promise.all([
       sb.from("hosts").select("*").order("name"),
       sb.from("guests").select("*").order("created_at"),
       sb.from("shift_signups").select("*").order("created_at"),
       sb.from("todos").select("*").order("created_at"),
       sb.from("djs").select("*").order("start_time"),
       sb.from("workshops").select("*").order("created_at"),
+      sb.from("expenses").select("*").order("spent_on"),
+      sb.from("notes").select("*").eq("id", "todos").maybeSingle(),
     ]));
-    const err = [h,g,s,t,d,w].find(r => r.error);
+    const err = [h,g,s,t,d,w,x,n].find(r => r.error);
     if (err) throw err.error;
-    S = { hosts:h.data, guests:g.data, signups:s.data, todos:t.data, djs:d.data, workshops:w.data };
+    S = { hosts:h.data, guests:g.data, signups:s.data, todos:t.data, djs:d.data, workshops:w.data,
+          expenses:x.data, note:(n.data?.body || "") };
     ui.problem = null;
   } catch (e) {
     ui.problem = "Die Daten kommen gerade nicht durch: " + (e.message || e.code || String(e));
@@ -256,6 +260,14 @@ const actions = {
   deleteDj(id) { return write(() => sb.from("djs").delete().eq("id", id)); },
   addWorkshop(person, title, description) { return write(() => sb.from("workshops").insert({ person, title, description })); },
   deleteWorkshop(id) { return write(() => sb.from("workshops").delete().eq("id", id)); },
+  saveNote(body) {
+    ui.noteDraft = null;
+    return write(() => sb.from("notes").upsert({ id: "todos", body, updated_at: new Date().toISOString() }));
+  },
+  addExpense(host_id, what, amount, spent_on) {
+    return write(() => sb.from("expenses").insert({ host_id, what, amount, spent_on }));
+  },
+  deleteExpense(id) { return write(() => sb.from("expenses").delete().eq("id", id)); },
 };
 
 /* ---------------------------- Ansichten ---------------------------- */
@@ -405,6 +417,15 @@ function viewTodos() {
     <ul class="cards">${offen.length ? offen.map(row).join("")
       : (fertig.length ? "" : `<li class="empty">Noch nichts offen. Schreib das erste rein.</li>`)}</ul>
     ${fertig.length ? `<h3 class="sub">Erledigt</h3><ul class="cards">${fertig.map(row).join("")}</ul>` : ""}
+  </section>
+  <section class="block">
+    <h2>Notizen</h2>
+    <p class="hint">Freies Feld für alles, was in keine Liste passt. Alle schreiben hier rein.</p>
+    <textarea id="noteBody" rows="8" placeholder="Einkaufszettel, Absprachen, wer bringt was …">${esc(ui.noteDraft ?? S.note)}</textarea>
+    <div class="row">
+      <button class="go" data-act="saveNote">Notizen speichern</button>
+      ${ui.noteDraft != null ? `<span class="by" style="align-self:center">nicht gespeichert</span>` : ""}
+    </div>
   </section>`;
 }
 
@@ -446,6 +467,47 @@ function viewWorkshops() {
   </section>`;
 }
 
+function viewAuslagen() {
+  const euro = n => (Number(n) || 0).toFixed(2).replace(".", ",") + " €";
+  const datum = d => d ? d.split("-").reverse().join(".") : "";
+  const sorted = [...S.expenses].sort((a,b) => (a.spent_on || "").localeCompare(b.spent_on || ""));
+  const gesamt = S.expenses.reduce((n,e) => n + Number(e.amount || 0), 0);
+  const proKopf = S.hosts.map(h => ({
+    name: h.name,
+    summe: S.expenses.filter(e => e.host_id === h.id).reduce((n,e) => n + Number(e.amount || 0), 0),
+  })).filter(x => x.summe > 0).sort((a,b) => b.summe - a.summe);
+  const heute = new Date().toISOString().slice(0,10);
+
+  return `<p class="tally">${gesamt > 0 ? "Bisher " + euro(gesamt) + " ausgelegt." : "Noch nichts ausgelegt."}</p>
+  <section class="block">
+    <h2>Auslage eintragen</h2>
+    <div class="form">
+      <select id="exHost">${S.hosts.map(h => `<option value="${h.id}" ${h.id === me ? "selected" : ""}>${esc(h.name)}</option>`).join("")}</select>
+      <input id="exWhat" placeholder="Wofür? z. B. Getränke, Lichterketten" />
+      <div class="row" style="margin:0">
+        <input id="exAmount" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Betrag in €" />
+        <input id="exDate" type="date" value="${heute}" aria-label="Wann" />
+      </div>
+      <button class="go wide" data-act="addEx">Eintragen</button>
+    </div>
+  </section>
+  <section class="block">
+    <h2>Alle Auslagen</h2>
+    <ul class="cards">${sorted.length ? sorted.map(e => `<li class="card">
+      <div class="grow"><strong>${esc(e.what)}</strong>
+        <p class="by" style="margin:2px 0 0">${esc(hostName(e.host_id))} · ${datum(e.spent_on)}</p></div>
+      <span class="betrag">${euro(e.amount)}</span>
+      <button class="link" data-act="delEx" data-id="${e.id}">Entfernen</button></li>`).join("")
+      : `<li class="empty">Noch keine Auslage eingetragen.</li>`}</ul>
+  </section>
+  ${proKopf.length ? `<section class="block">
+    <h2>Wer hat wie viel ausgelegt</h2>
+    <ul class="cards">${proKopf.map(x => `<li class="card">
+      <span class="grow">${esc(x.name)}</span><span class="betrag">${euro(x.summe)}</span></li>`).join("")}
+      <li class="card"><span class="grow"><strong>Gesamt</strong></span><span class="betrag"><strong>${euro(gesamt)}</strong></span></li>
+    </ul></section>` : ""}`;
+}
+
 /* ----------------------------- Rendern ----------------------------- */
 
 function render() {
@@ -461,8 +523,8 @@ function render() {
   if (!me || !S.hosts.some(h => h.id === me)) { app.innerHTML = viewGate(); return restore(focused, pos, vals); }
 
   const openTodos = S.todos.filter(t => !t.done).length;
-  const tabs = [["schichten","Schichten"],["gaeste","Gästeliste"],["todos","To-dos"],["djs","DJ-Timetable"],["workshops","Workshops"]];
-  const body = { schichten:viewSchichten, gaeste:viewGaeste, todos:viewTodos, djs:viewDjs, workshops:viewWorkshops }[tab]();
+  const tabs = [["schichten","Schichten"],["gaeste","Gästeliste"],["todos","To-dos"],["djs","DJ-Timetable"],["workshops","Workshops"],["auslagen","Auslagen"]];
+  const body = { schichten:viewSchichten, gaeste:viewGaeste, todos:viewTodos, djs:viewDjs, workshops:viewWorkshops, auslagen:viewAuslagen }[tab]();
 
   app.innerHTML = `
     <header class="top">
@@ -548,6 +610,15 @@ document.addEventListener("click", e => {
       take("wsPerson"); take("wsTitle"); take("wsDesc");
       actions.addWorkshop(p, t, d); break; }
     case "delWs": actions.deleteWorkshop(id); break;
+    case "saveNote": actions.saveNote(document.getElementById("noteBody")?.value || ""); break;
+    case "addEx": {
+      const host_id = document.getElementById("exHost")?.value;
+      const what = val("exWhat"), amount = val("exAmount"), spent_on = val("exDate");
+      if (!host_id || !what) break;
+      take("exWhat"); take("exAmount");
+      actions.addExpense(host_id, what, amount === "" ? null : Number(amount.replace(",", ".")), spent_on || null);
+      break; }
+    case "delEx": actions.deleteExpense(id); break;
   }
 });
 
@@ -560,12 +631,17 @@ document.addEventListener("keydown", e => {
   if (e.target.id === "hname") document.querySelector('[data-act="saveHost"]')?.click();
 });
 
+document.addEventListener("input", e => {
+  if (e.target.id === "noteBody") ui.noteDraft = e.target.value;
+});
+
 // Nicht aktualisieren, solange jemand tippt oder etwas Halbfertiges im Feld steht.
 function amTippen() {
   const a = document.activeElement;
   if (a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.tagName === "SELECT")) return true;
+  if (ui.noteDraft != null) return true;
   return [...app.querySelectorAll("input, textarea")]
-    .some(el => el.type !== "checkbox" && el.value.trim() !== "");
+    .some(el => el.id !== "noteBody" && el.type !== "checkbox" && el.value.trim() !== "");
 }
 
 setInterval(() => {
