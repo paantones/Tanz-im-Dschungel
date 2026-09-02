@@ -161,7 +161,7 @@ const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt
 let S = { hosts:[], guests:[], signups:[], todos:[], djs:[], workshops:[], expenses:[], note:"" };
 let me = localStorage.getItem("dsch:me");
 let tab = "schichten";
-let ui = { editGuest:null, editHost:null, busy:false, problem:null, loaded:false, noteDraft:null };
+let ui = { editGuest:null, editHost:null, editTodo:null, busy:false, problem:null, loaded:false, noteDraft:null };
 const app = document.getElementById("app");
 
 /* ------------------------------ Daten ------------------------------ */
@@ -256,6 +256,7 @@ const actions = {
     return write(() => sb.from("todos").update({ done: !t.done, done_by: t.done ? null : me }).eq("id", id));
   },
   deleteTodo(id) { return write(() => sb.from("todos").delete().eq("id", id)); },
+  updateTodo(id, text) { return write(() => sb.from("todos").update({ text }).eq("id", id)); },
   addDj(name, start_time, end_time) { return write(() => sb.from("djs").insert({ name, start_time, end_time })); },
   deleteDj(id) { return write(() => sb.from("djs").delete().eq("id", id)); },
   addWorkshop(person, title, description) { return write(() => sb.from("workshops").insert({ person, title, description })); },
@@ -402,10 +403,17 @@ function viewGaeste() {
 function viewTodos() {
   const offen = S.todos.filter(t => !t.done);
   const fertig = S.todos.filter(t => t.done);
-  const row = t => `<li class="card todo${t.done ? " done" : ""}">
+  const row = t => ui.editTodo === t.id
+    ? `<li class="card edit">
+        <input id="tdText" value="${esc(t.text)}" />
+        <button class="link" data-act="saveTodo" data-id="${t.id}">Speichern</button>
+        <button class="link" data-act="cancelTodo">Abbrechen</button>
+      </li>`
+    : `<li class="card todo${t.done ? " done" : ""}">
     <label><input type="checkbox" ${t.done ? "checked" : ""} data-act="todo" data-id="${t.id}" />
       <span class="txt">${esc(t.text)}</span></label>
     <span class="by">${t.done ? (t.done_by ? "erledigt von " + esc(hostName(t.done_by)) : "erledigt") : "von " + esc(hostName(t.created_by))}</span>
+    <button class="link" data-act="editTodo" data-id="${t.id}">Ändern</button>
     <button class="link" data-act="delTodo" data-id="${t.id}">Löschen</button>
   </li>`;
   return `<section class="block">
@@ -600,6 +608,10 @@ document.addEventListener("click", e => {
     case "addTodo": { const t = take("todoText"); if (t) actions.addTodo(t); break; }
     case "todo": actions.toggleTodo(id); break;
     case "delTodo": actions.deleteTodo(id); break;
+    case "editTodo": ui.editTodo = id; render(); break;
+    case "cancelTodo": ui.editTodo = null; render(); break;
+    case "saveTodo": { const t = val("tdText"); ui.editTodo = null;
+      if (t) actions.updateTodo(id, t); else render(); break; }
     case "addDj": { const n = val("djName"), s = val("djStart"), t = val("djEnd");
       if (!n || !s || !t) break;
       take("djName"); take("djStart"); take("djEnd");
@@ -628,6 +640,7 @@ document.addEventListener("keydown", e => {
   const act = map[e.target.id];
   if (act) { e.preventDefault(); document.querySelector(`[data-act="${act}"]`)?.click(); }
   if (e.target.id === "gname") document.querySelector('[data-act="saveGuest"]')?.click();
+  if (e.target.id === "tdText") document.querySelector('[data-act="saveTodo"]')?.click();
   if (e.target.id === "hname") document.querySelector('[data-act="saveHost"]')?.click();
 });
 
@@ -646,7 +659,7 @@ function amTippen() {
 
 setInterval(() => {
   if (document.visibilityState !== "visible") return;
-  if (ui.busy || ui.editGuest || ui.editHost || amTippen()) return;
+  if (ui.busy || ui.editGuest || ui.editHost || ui.editTodo || amTippen()) return;
   load();
 }, 60000);
 
