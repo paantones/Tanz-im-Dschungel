@@ -193,7 +193,7 @@ async function load() {
     S = { hosts:h.data, guests:g.data, signups:s.data, todos:t.data, djs:d.data, workshops:w.data };
     ui.problem = null;
   } catch (e) {
-    ui.problem = "Die Daten kommen gerade nicht durch. Zieh die Seite runter oder tipp auf „Neu laden“.";
+    ui.problem = "Die Daten kommen gerade nicht durch: " + (e.message || e.code || String(e));
   }
   ui.loaded = true;
   render();
@@ -207,7 +207,7 @@ async function write(fn) {
     if (res && res.error) throw res.error;
     ui.problem = null;
   } catch (e) {
-    ui.problem = "Speichern hat nicht geklappt. Prüf die Verbindung und versuch es nochmal.";
+    ui.problem = "Speichern hat nicht geklappt: " + (e.message || e.code || String(e));
   }
   ui.busy = false;
   await load();
@@ -221,10 +221,15 @@ const guestsOf = hid => S.guests.filter(g => g.host_id === hid);
 
 const actions = {
   async createHost(name) {
-    const { data, error } = await withTimeout(sb.from("hosts").insert({ name }).select().single());
-    if (error) { ui.problem = "Anlegen hat nicht geklappt."; render(); return; }
-    me = data.id; localStorage.setItem("dsch:me", me);
-    await load();
+    try {
+      const { data, error } = await withTimeout(sb.from("hosts").insert({ name }).select().single());
+      if (error) throw error;
+      me = data.id; localStorage.setItem("dsch:me", me);
+      await load();
+    } catch (e) {
+      ui.problem = "Anlegen hat nicht geklappt: " + (e.message || e.code || String(e));
+      render();
+    }
   },
   claim(id) { me = id; if (id) localStorage.setItem("dsch:me", id); else localStorage.removeItem("dsch:me"); render(); },
   toggleShift(sid) {
@@ -272,6 +277,7 @@ function viewGate() {
   return `<div class="gate">
     <h1>Tanz im Dschungel</h1>
     <p class="lead">Sag, wer du bist. Danach steht dein Name automatisch an deinen Schichten, Gästen und To-dos.</p>
+    ${ui.problem ? `<p class="problem">${esc(ui.problem)}</p>` : ""}
     ${sorted.length ? `
       <h2>Wähl dich aus</h2>
       <div class="chips">${sorted.map(h => `<button class="chip" data-act="claim" data-id="${h.id}">${esc(h.name)}</button>`).join("")}</div>
