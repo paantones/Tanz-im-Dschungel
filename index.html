@@ -104,7 +104,17 @@ select{font-size:14px; padding:8px 10px; max-width:100%;}
 .card.edit{flex-wrap:wrap;}
 .card.edit input{flex:1 1 160px;}
 .card label{display:flex; align-items:center; gap:10px; flex:1; cursor:pointer;}
+.card.col{flex-direction:column; align-items:stretch;}
+.todoRow{display:flex; align-items:flex-start; gap:10px;}
+.todoMain{flex:1; display:flex; flex-direction:column; gap:2px; background:none; border:none;
+  padding:0; text-align:left; color:inherit; font-size:15px; line-height:1.4;}
+.todoMain .by{white-space:normal;}
 .todo.done .txt{text-decoration:line-through; color:var(--soft);}
+.notes{border-top:1px solid var(--line); margin-top:10px; padding-top:10px;}
+.note{padding:6px 0; border-bottom:1px solid rgba(201,210,188,.5);}
+.note p{margin:0; white-space:pre-wrap;}
+.noteMeta{font-size:12px; color:var(--soft);}
+.noteMeta .link{font-size:12px;}
 .betrag{font-variant-numeric:tabular-nums; white-space:nowrap;}
 .by{font-size:12px; color:var(--soft); white-space:nowrap;}
 .group{margin-bottom:14px;}
@@ -158,10 +168,10 @@ const hh = h => String(h % 24).padStart(2,"0") + ":00";
 const spanLabel = s => `${hh(s[0])} – ${hh(s[1])}`;
 const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
 
-let S = { hosts:[], guests:[], signups:[], todos:[], djs:[], workshops:[], expenses:[], note:"" };
+let S = { hosts:[], guests:[], signups:[], todos:[], djs:[], workshops:[], expenses:[], todoNotes:[] };
 let me = localStorage.getItem("dsch:me");
 let tab = "schichten";
-let ui = { editGuest:null, editHost:null, editTodo:null, busy:false, problem:null, loaded:false, noteDraft:null };
+let ui = { editGuest:null, editHost:null, editTodo:null, openTodo:null, busy:false, problem:null, loaded:false };
 const app = document.getElementById("app");
 
 /* ------------------------------ Daten ------------------------------ */
@@ -189,12 +199,12 @@ async function load() {
       sb.from("djs").select("*").order("start_time"),
       sb.from("workshops").select("*").order("created_at"),
       sb.from("expenses").select("*").order("spent_on"),
-      sb.from("notes").select("*").eq("id", "todos").maybeSingle(),
+      sb.from("todo_notes").select("*").order("created_at"),
     ]));
     const err = [h,g,s,t,d,w,x,n].find(r => r.error);
     if (err) throw err.error;
     S = { hosts:h.data, guests:g.data, signups:s.data, todos:t.data, djs:d.data, workshops:w.data,
-          expenses:x.data, note:(n.data?.body || "") };
+          expenses:x.data, todoNotes:n.data };
     ui.problem = null;
   } catch (e) {
     ui.problem = "Die Daten kommen gerade nicht durch: " + (e.message || e.code || String(e));
@@ -261,10 +271,8 @@ const actions = {
   deleteDj(id) { return write(() => sb.from("djs").delete().eq("id", id)); },
   addWorkshop(person, title, description) { return write(() => sb.from("workshops").insert({ person, title, description })); },
   deleteWorkshop(id) { return write(() => sb.from("workshops").delete().eq("id", id)); },
-  saveNote(body) {
-    ui.noteDraft = null;
-    return write(() => sb.from("notes").upsert({ id: "todos", body, updated_at: new Date().toISOString() }));
-  },
+  addNote(todo_id, body) { return write(() => sb.from("todo_notes").insert({ todo_id, host_id: me, body })); },
+  deleteNote(id) { return write(() => sb.from("todo_notes").delete().eq("id", id)); },
   addExpense(host_id, what, amount, spent_on) {
     return write(() => sb.from("expenses").insert({ host_id, what, amount, spent_on }));
   },
@@ -403,21 +411,53 @@ function viewGaeste() {
 function viewTodos() {
   const offen = S.todos.filter(t => !t.done);
   const fertig = S.todos.filter(t => t.done);
-  const row = t => ui.editTodo === t.id
-    ? `<li class="card edit">
-        <input id="tdText" value="${esc(t.text)}" />
-        <button class="link" data-act="saveTodo" data-id="${t.id}">Speichern</button>
-        <button class="link" data-act="cancelTodo">Abbrechen</button>
-      </li>`
-    : `<li class="card todo${t.done ? " done" : ""}">
-    <label><input type="checkbox" ${t.done ? "checked" : ""} data-act="todo" data-id="${t.id}" />
-      <span class="txt">${esc(t.text)}</span></label>
-    <span class="by">${t.done ? (t.done_by ? "erledigt von " + esc(hostName(t.done_by)) : "erledigt") : "von " + esc(hostName(t.created_by))}</span>
-    <button class="link" data-act="editTodo" data-id="${t.id}">Ändern</button>
-    <button class="link" data-act="delTodo" data-id="${t.id}">Löschen</button>
-  </li>`;
+  const notesOf = id => S.todoNotes.filter(n => n.todo_id === id);
+  const wann = ts => {
+    const d = new Date(ts);
+    return isNaN(d) ? "" : d.toLocaleString("de-DE", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
+  };
+
+  const notenBlock = t => {
+    const list = notesOf(t.id);
+    return `<div class="notes">
+      ${list.map(n => `<div class="note">
+        <p>${esc(n.body)}</p>
+        <span class="noteMeta">${esc(hostName(n.host_id))} · ${wann(n.created_at)}
+          <button class="link" data-act="delNote" data-id="${n.id}">löschen</button></span>
+      </div>`).join("")}
+      ${list.length ? "" : `<p class="empty" style="padding:0 0 6px">Noch keine Notiz zu dieser Aufgabe.</p>`}
+      <div class="row" style="margin:6px 0 0">
+        <input id="noteInput" placeholder="Notiz schreiben …" />
+        <button class="go" data-act="addNote" data-id="${t.id}">Senden</button>
+      </div>
+    </div>`;
+  };
+
+  const row = t => {
+    if (ui.editTodo === t.id) return `<li class="card edit">
+      <input id="tdText" value="${esc(t.text)}" />
+      <button class="link" data-act="saveTodo" data-id="${t.id}">Speichern</button>
+      <button class="link" data-act="cancelTodo">Abbrechen</button>
+    </li>`;
+    const n = notesOf(t.id).length;
+    const offen = ui.openTodo === t.id;
+    return `<li class="card todo col${t.done ? " done" : ""}">
+      <div class="todoRow">
+        <input type="checkbox" ${t.done ? "checked" : ""} data-act="todo" data-id="${t.id}" />
+        <button class="todoMain" data-act="openTodo" data-id="${t.id}">
+          <span class="txt">${esc(t.text)}</span>
+          <span class="by">von ${esc(hostName(t.done ? (t.done_by || t.created_by) : t.created_by))}${t.done ? " · erledigt" : ""}${n ? ` · ${n} ${n === 1 ? "Notiz" : "Notizen"}` : ""}</span>
+        </button>
+        <button class="link" data-act="editTodo" data-id="${t.id}">Ändern</button>
+        <button class="link" data-act="delTodo" data-id="${t.id}">Löschen</button>
+      </div>
+      ${offen ? notenBlock(t) : ""}
+    </li>`;
+  };
+
   return `<section class="block">
     <h2>To-dos</h2>
+    <p class="hint">Auf eine Aufgabe tippen öffnet die Notizen dazu.</p>
     <div class="row">
       <input id="todoText" placeholder="Was muss noch passieren?" />
       <button class="go" data-act="addTodo">Hinzufügen</button>
@@ -425,15 +465,6 @@ function viewTodos() {
     <ul class="cards">${offen.length ? offen.map(row).join("")
       : (fertig.length ? "" : `<li class="empty">Noch nichts offen. Schreib das erste rein.</li>`)}</ul>
     ${fertig.length ? `<h3 class="sub">Erledigt</h3><ul class="cards">${fertig.map(row).join("")}</ul>` : ""}
-  </section>
-  <section class="block">
-    <h2>Notizen</h2>
-    <p class="hint">Freies Feld für alles, was in keine Liste passt. Alle schreiben hier rein.</p>
-    <textarea id="noteBody" rows="8" placeholder="Einkaufszettel, Absprachen, wer bringt was …">${esc(ui.noteDraft ?? S.note)}</textarea>
-    <div class="row">
-      <button class="go" data-act="saveNote">Notizen speichern</button>
-      ${ui.noteDraft != null ? `<span class="by" style="align-self:center">nicht gespeichert</span>` : ""}
-    </div>
   </section>`;
 }
 
@@ -622,7 +653,9 @@ document.addEventListener("click", e => {
       take("wsPerson"); take("wsTitle"); take("wsDesc");
       actions.addWorkshop(p, t, d); break; }
     case "delWs": actions.deleteWorkshop(id); break;
-    case "saveNote": actions.saveNote(document.getElementById("noteBody")?.value || ""); break;
+    case "openTodo": ui.openTodo = ui.openTodo === id ? null : id; render(); break;
+    case "addNote": { const b = take("noteInput"); if (b) actions.addNote(id, b); break; }
+    case "delNote": actions.deleteNote(id); break;
     case "addEx": {
       const host_id = document.getElementById("exHost")?.value;
       const what = val("exWhat"), amount = val("exAmount"), spent_on = val("exDate");
@@ -641,20 +674,19 @@ document.addEventListener("keydown", e => {
   if (act) { e.preventDefault(); document.querySelector(`[data-act="${act}"]`)?.click(); }
   if (e.target.id === "gname") document.querySelector('[data-act="saveGuest"]')?.click();
   if (e.target.id === "tdText") document.querySelector('[data-act="saveTodo"]')?.click();
+  if (e.target.id === "noteInput") document.querySelector('[data-act="addNote"]')?.click();
   if (e.target.id === "hname") document.querySelector('[data-act="saveHost"]')?.click();
 });
 
 document.addEventListener("input", e => {
-  if (e.target.id === "noteBody") ui.noteDraft = e.target.value;
 });
 
 // Nicht aktualisieren, solange jemand tippt oder etwas Halbfertiges im Feld steht.
 function amTippen() {
   const a = document.activeElement;
   if (a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.tagName === "SELECT")) return true;
-  if (ui.noteDraft != null) return true;
   return [...app.querySelectorAll("input, textarea")]
-    .some(el => el.id !== "noteBody" && el.type !== "checkbox" && el.value.trim() !== "");
+    .some(el => el.type !== "checkbox" && el.value.trim() !== "");
 }
 
 setInterval(() => {
