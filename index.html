@@ -83,7 +83,10 @@ select{font-size:14px; padding:8px 10px; max-width:100%;}
 .time{font-variant-numeric:tabular-nums; font-weight:600; min-width:104px;}
 .people{flex:1; display:flex; flex-wrap:wrap; gap:6px; align-items:center;}
 .people em{color:var(--soft); font-size:13px;}
-.pill{background:#E3EAD8; border-radius:999px; padding:2px 9px; font-size:13px;}
+.pill{background:#E3EAD8; border-radius:999px; padding:2px 9px; font-size:13px; display:inline-flex; align-items:center; gap:2px;}
+.pill .weg{text-decoration:none; font-size:15px; line-height:1; padding:0 0 0 4px; color:var(--soft);}
+.slotBtns{display:flex; align-items:center; gap:6px;}
+.slot .addOther{flex-basis:100%; margin:8px 0 0;}
 .in,.out{border-radius:3px; padding:6px 12px; border:1px solid var(--green); background:var(--green); color:#F4F7EE; white-space:nowrap;}
 .out{background:none; color:var(--green);}
 .in:disabled{background:none; border-color:var(--line); color:var(--soft); cursor:default;}
@@ -173,7 +176,7 @@ const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt
 let S = { hosts:[], guests:[], signups:[], todos:[], djs:[], workshops:[], expenses:[], todoNotes:[], board:[] };
 let me = localStorage.getItem("dsch:me");
 let tab = "schichten";
-let ui = { editGuest:null, editHost:null, editTodo:null, openTodo:null, replyTo:null, busy:false, problem:null, loaded:false };
+let ui = { editGuest:null, editHost:null, editTodo:null, openTodo:null, replyTo:null, addTo:null, busy:false, problem:null, loaded:false };
 const app = document.getElementById("app");
 
 /* ------------------------------ Daten ------------------------------ */
@@ -233,6 +236,7 @@ async function write(fn) {
 const hostName = id => S.hosts.find(h => h.id === id)?.name || "Unbekannt";
 const seatsOf = sid => S.signups.filter(x => x.shift_id === sid);
 const guestsOf = hid => S.guests.filter(g => g.host_id === hid);
+const signupName = x => x.host_id ? hostName(x.host_id) : (x.name || "Unbekannt");
 
 /* ---------------------------- Aktionen ---------------------------- */
 
@@ -256,6 +260,12 @@ const actions = {
     if (seatsOf(sid).length >= shift.seats) return;
     return write(() => sb.from("shift_signups").insert({ shift_id: sid, host_id: me }));
   },
+  addOther(shift_id, name) {
+    ui.addTo = null;
+    const hit = S.hosts.find(h => h.name.toLowerCase() === name.toLowerCase());
+    return write(() => sb.from("shift_signups").insert(hit ? { shift_id, host_id: hit.id } : { shift_id, name }));
+  },
+  removeSignup(id) { return write(() => sb.from("shift_signups").delete().eq("id", id)); },
   addGuest(name) {
     if (guestsOf(me).length >= GUEST_LIMIT) return;
     return write(() => sb.from("guests").insert({ name, host_id: me }));
@@ -342,16 +352,24 @@ function viewSchichten() {
     <ul class="slots">${SHIFTS.filter(s => s.kind === kind).map(s => {
       const list = seatsOf(s.id);
       const isMine = list.some(x => x.host_id === me);
-      const full = list.length >= s.seats && !isMine;
       const free = s.seats - list.length;
-      return `<li class="slot${isMine ? " mine" : ""}${full ? " full" : ""}">
+      const full = free <= 0;
+      return `<li class="slot${isMine ? " mine" : ""}${full && !isMine ? " full" : ""}">
         <span class="time">${spanLabel(s.span)}</span>
         <span class="people">
-          ${list.length === 0 ? "<em>frei</em>" : list.map(x => `<span class="pill">${esc(hostName(x.host_id))}</span>`).join("")}
+          ${list.length === 0 ? "<em>frei</em>" : list.map(x => `<span class="pill">${esc(signupName(x))}<button class="link weg" data-act="delSignup" data-id="${x.id}" title="Entfernen">×</button></span>`).join("")}
           ${list.length && free > 0 ? `<em>+${free} frei</em>` : ""}
         </span>
-        <button class="${isMine ? "out" : "in"}" data-act="shift" data-id="${s.id}" ${full ? "disabled" : ""}>
-          ${isMine ? "Austragen" : full ? "Voll" : "Eintragen"}</button>
+        <span class="slotBtns">
+          <button class="${isMine ? "out" : "in"}" data-act="shift" data-id="${s.id}" ${full && !isMine ? "disabled" : ""}>
+            ${isMine ? "Austragen" : full ? "Voll" : "Ich"}</button>
+          ${free > 0 ? `<button class="link" data-act="addOther" data-id="${s.id}">Andere*n</button>` : ""}
+        </span>
+        ${ui.addTo === s.id ? `<div class="row addOther">
+          <input id="otherName" placeholder="Name der Person" />
+          <button class="go" data-act="saveOther" data-id="${s.id}">Eintragen</button>
+          <button class="link" data-act="cancelOther">Abbrechen</button>
+        </div>` : ""}
       </li>`;
     }).join("")}</ul></section>`;
   return `<p class="tally">${open === 0 ? "Alle Schichten besetzt." : open + " Plätze noch frei."}
@@ -672,6 +690,10 @@ document.addEventListener("click", e => {
     case "tab": tab = el.dataset.tab; render(); break;
     case "reload": load(); break;
     case "shift": actions.toggleShift(id); break;
+    case "addOther": ui.addTo = id; render(); break;
+    case "cancelOther": ui.addTo = null; render(); break;
+    case "saveOther": { const n = take("otherName"); if (n) actions.addOther(id, n); else { ui.addTo = null; render(); } break; }
+    case "delSignup": actions.removeSignup(id); break;
     case "addGuest": { const n = take("guestName"); if (n) actions.addGuest(n); break; }
     case "editGuest": ui.editGuest = id; render(); break;
     case "cancelGuest": ui.editGuest = null; render(); break;
@@ -728,6 +750,7 @@ document.addEventListener("keydown", e => {
   if (e.target.id === "noteInput") document.querySelector('[data-act="addNote"]')?.click();
   if (e.target.id === "boardInput") document.querySelector('[data-act="addBoard"]')?.click();
   if (e.target.id === "replyInput") document.querySelector('[data-act="sendReply"]')?.click();
+  if (e.target.id === "otherName") document.querySelector('[data-act="saveOther"]')?.click();
   if (e.target.id === "hname") document.querySelector('[data-act="saveHost"]')?.click();
 });
 
@@ -744,7 +767,7 @@ function amTippen() {
 
 setInterval(() => {
   if (document.visibilityState !== "visible") return;
-  if (ui.busy || ui.editGuest || ui.editHost || ui.editTodo || ui.replyTo || amTippen()) return;
+  if (ui.busy || ui.editGuest || ui.editHost || ui.editTodo || ui.replyTo || ui.addTo || amTippen()) return;
   load();
 }, 60000);
 
