@@ -126,6 +126,7 @@ select{font-size:14px; padding:8px 10px; max-width:100%;}
 .group h3 .link{font-size:12px; margin-left:6px;}
 .count{font-family:'Karla',sans-serif; font-size:12px; color:var(--soft); font-weight:400;}
 .card.ws{align-items:flex-start;}
+.card.ws.col h3{margin:0;}
 .card.ws > div{flex:1;}
 .desc{margin:6px 0 0; max-width:62ch; white-space:pre-wrap;}
 
@@ -173,10 +174,10 @@ const hh = h => String(h % 24).padStart(2,"0") + ":00";
 const spanLabel = s => `${hh(s[0])} – ${hh(s[1])}`;
 const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
 
-let S = { hosts:[], guests:[], signups:[], todos:[], djs:[], workshops:[], expenses:[], todoNotes:[], board:[] };
+let S = { hosts:[], guests:[], signups:[], todos:[], djs:[], workshops:[], expenses:[], todoNotes:[], board:[], wsNotes:[] };
 let me = localStorage.getItem("dsch:me");
 let tab = "schichten";
-let ui = { editGuest:null, editHost:null, editTodo:null, openTodo:null, replyTo:null, addTo:null, busy:false, problem:null, loaded:false };
+let ui = { editGuest:null, editHost:null, editTodo:null, openTodo:null, openWs:null, replyTo:null, addTo:null, busy:false, problem:null, loaded:false };
 const app = document.getElementById("app");
 
 /* ------------------------------ Daten ------------------------------ */
@@ -196,7 +197,7 @@ async function attempt(fn, tries = 4) {
 
 async function load() {
   try {
-    const [h, g, s, t, d, w, x, n, b] = await attempt(() => Promise.all([
+    const [h, g, s, t, d, w, x, n, b, k] = await attempt(() => Promise.all([
       sb.from("hosts").select("*").order("name"),
       sb.from("guests").select("*").order("created_at"),
       sb.from("shift_signups").select("*").order("created_at"),
@@ -206,11 +207,12 @@ async function load() {
       sb.from("expenses").select("*").order("spent_on"),
       sb.from("todo_notes").select("*").order("created_at"),
       sb.from("board_notes").select("*").order("created_at"),
+      sb.from("workshop_notes").select("*").order("created_at"),
     ]));
-    const err = [h,g,s,t,d,w,x,n,b].find(r => r.error);
+    const err = [h,g,s,t,d,w,x,n,b,k].find(r => r.error);
     if (err) throw err.error;
     S = { hosts:h.data, guests:g.data, signups:s.data, todos:t.data, djs:d.data, workshops:w.data,
-          expenses:x.data, todoNotes:n.data, board:b.data };
+          expenses:x.data, todoNotes:n.data, board:b.data, wsNotes:k.data };
     ui.problem = null;
   } catch (e) {
     ui.problem = "Die Daten kommen gerade nicht durch: " + (e.message || e.code || String(e));
@@ -284,6 +286,8 @@ const actions = {
   deleteDj(id) { return write(() => sb.from("djs").delete().eq("id", id)); },
   addWorkshop(person, title, description) { return write(() => sb.from("workshops").insert({ person, title, description })); },
   deleteWorkshop(id) { return write(() => sb.from("workshops").delete().eq("id", id)); },
+  addWsNote(workshop_id, body) { return write(() => sb.from("workshop_notes").insert({ workshop_id, host_id: me, body })); },
+  deleteWsNote(id) { return write(() => sb.from("workshop_notes").delete().eq("id", id)); },
   addNote(todo_id, body) { return write(() => sb.from("todo_notes").insert({ todo_id, host_id: me, body })); },
   deleteNote(id) { return write(() => sb.from("todo_notes").delete().eq("id", id)); },
   addBoardNote(body, parent_id = null) {
@@ -554,6 +558,12 @@ function viewDjs() {
 }
 
 function viewWorkshops() {
+  const wann = ts => {
+    const d = new Date(ts);
+    return isNaN(d) ? "" : d.toLocaleString("de-DE", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
+  };
+  const komm = id => S.wsNotes.filter(n => n.workshop_id === id);
+
   return `<section class="block">
     <h2>Workshops</h2>
     <div class="form">
@@ -562,11 +572,33 @@ function viewWorkshops() {
       <textarea id="wsDesc" rows="3" placeholder="Worum geht's? Was braucht ihr?"></textarea>
       <button class="go wide" data-act="addWs">Workshop eintragen</button>
     </div>
-    <ul class="cards">${S.workshops.length ? S.workshops.map(w => `<li class="card ws">
-      <div><h3>${esc(w.title)}</h3><p class="by">mit ${esc(w.person)}</p>
-      ${w.description ? `<p class="desc">${esc(w.description)}</p>` : ""}</div>
-      <button class="link" data-act="delWs" data-id="${w.id}">Entfernen</button></li>`).join("")
-      : `<li class="empty">Noch keine Workshops. Trag deinen ein.</li>`}</ul>
+    <p class="hint">Auf einen Workshop tippen öffnet die Kommentare dazu.</p>
+    <ul class="cards">${S.workshops.length ? S.workshops.map(w => {
+      const list = komm(w.id);
+      const offen = ui.openWs === w.id;
+      return `<li class="card ws col">
+        <div class="todoRow">
+          <button class="todoMain" data-act="openWs" data-id="${w.id}">
+            <h3>${esc(w.title)}</h3>
+            <span class="by">mit ${esc(w.person)}${list.length ? ` · ${list.length} ${list.length === 1 ? "Kommentar" : "Kommentare"}` : ""}</span>
+          </button>
+          <button class="link" data-act="delWs" data-id="${w.id}">Entfernen</button>
+        </div>
+        ${w.description ? `<p class="desc">${esc(w.description)}</p>` : ""}
+        ${offen ? `<div class="notes">
+          ${list.map(n => `<div class="note">
+            <p>${esc(n.body)}</p>
+            <span class="noteMeta">${esc(hostName(n.host_id))} · ${wann(n.created_at)}
+              <button class="link" data-act="delWsNote" data-id="${n.id}">löschen</button></span>
+          </div>`).join("")}
+          ${list.length ? "" : `<p class="empty" style="padding:0 0 6px">Noch kein Kommentar.</p>`}
+          <div class="row" style="margin:6px 0 0">
+            <input id="wsNoteInput" placeholder="Kommentar schreiben …" />
+            <button class="go" data-act="addWsNote" data-id="${w.id}">Senden</button>
+          </div>
+        </div>` : ""}
+      </li>`;
+    }).join("") : `<li class="empty">Noch keine Workshops. Trag deinen ein.</li>`}</ul>
   </section>`;
 }
 
@@ -721,6 +753,9 @@ document.addEventListener("click", e => {
       take("wsPerson"); take("wsTitle"); take("wsDesc");
       actions.addWorkshop(p, t, d); break; }
     case "delWs": actions.deleteWorkshop(id); break;
+    case "openWs": ui.openWs = ui.openWs === id ? null : id; render(); break;
+    case "addWsNote": { const b = take("wsNoteInput"); if (b) actions.addWsNote(id, b); break; }
+    case "delWsNote": actions.deleteWsNote(id); break;
     case "openTodo": ui.openTodo = ui.openTodo === id ? null : id; render(); break;
     case "addNote": { const b = take("noteInput"); if (b) actions.addNote(id, b); break; }
     case "delNote": actions.deleteNote(id); break;
@@ -751,6 +786,7 @@ document.addEventListener("keydown", e => {
   if (e.target.id === "boardInput") document.querySelector('[data-act="addBoard"]')?.click();
   if (e.target.id === "replyInput") document.querySelector('[data-act="sendReply"]')?.click();
   if (e.target.id === "otherName") document.querySelector('[data-act="saveOther"]')?.click();
+  if (e.target.id === "wsNoteInput") document.querySelector('[data-act="addWsNote"]')?.click();
   if (e.target.id === "hname") document.querySelector('[data-act="saveHost"]')?.click();
 });
 
