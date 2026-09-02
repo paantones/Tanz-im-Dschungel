@@ -115,6 +115,8 @@ select{font-size:14px; padding:8px 10px; max-width:100%;}
 .note p{margin:0; white-space:pre-wrap;}
 .noteMeta{font-size:12px; color:var(--soft);}
 .noteMeta .link{font-size:12px;}
+.replies{margin:8px 0 0 4px; border-left:2px solid var(--line); padding-left:10px;}
+.replies .note:last-child{border-bottom:none; padding-bottom:0;}
 .betrag{font-variant-numeric:tabular-nums; white-space:nowrap;}
 .by{font-size:12px; color:var(--soft); white-space:nowrap;}
 .group{margin-bottom:14px;}
@@ -171,7 +173,7 @@ const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt
 let S = { hosts:[], guests:[], signups:[], todos:[], djs:[], workshops:[], expenses:[], todoNotes:[], board:[] };
 let me = localStorage.getItem("dsch:me");
 let tab = "schichten";
-let ui = { editGuest:null, editHost:null, editTodo:null, openTodo:null, busy:false, problem:null, loaded:false };
+let ui = { editGuest:null, editHost:null, editTodo:null, openTodo:null, replyTo:null, busy:false, problem:null, loaded:false };
 const app = document.getElementById("app");
 
 /* ------------------------------ Daten ------------------------------ */
@@ -274,7 +276,10 @@ const actions = {
   deleteWorkshop(id) { return write(() => sb.from("workshops").delete().eq("id", id)); },
   addNote(todo_id, body) { return write(() => sb.from("todo_notes").insert({ todo_id, host_id: me, body })); },
   deleteNote(id) { return write(() => sb.from("todo_notes").delete().eq("id", id)); },
-  addBoardNote(body) { return write(() => sb.from("board_notes").insert({ host_id: me, body })); },
+  addBoardNote(body, parent_id = null) {
+    ui.replyTo = null;
+    return write(() => sb.from("board_notes").insert({ host_id: me, body, parent_id }));
+  },
   deleteBoardNote(id) { return write(() => sb.from("board_notes").delete().eq("id", id)); },
   addExpense(host_id, what, amount, spent_on) {
     return write(() => sb.from("expenses").insert({ host_id, what, amount, spent_on }));
@@ -476,6 +481,13 @@ function viewNotizen() {
     const d = new Date(ts);
     return isNaN(d) ? "" : d.toLocaleString("de-DE", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
   };
+  const kopf = n => `<p>${esc(n.body)}</p>
+    <span class="noteMeta">${esc(hostName(n.host_id))} · ${wann(n.created_at)}
+      <button class="link" data-act="delBoard" data-id="${n.id}">löschen</button></span>`;
+
+  const oben = S.board.filter(n => !n.parent_id).reverse();
+  const antworten = id => S.board.filter(n => n.parent_id === id);
+
   return `<section class="block">
     <h2>Notizen</h2>
     <p class="hint">Alles, was in keine Liste passt. Einkaufszettel, Absprachen, wer was mitbringt.</p>
@@ -484,11 +496,20 @@ function viewNotizen() {
       <button class="go" data-act="addBoard">Senden</button>
     </div>
     <div class="notes" style="border:none; padding-top:0">
-      ${S.board.length ? [...S.board].reverse().map(n => `<div class="note">
-        <p>${esc(n.body)}</p>
-        <span class="noteMeta">${esc(hostName(n.host_id))} · ${wann(n.created_at)}
-          <button class="link" data-act="delBoard" data-id="${n.id}">löschen</button></span>
-      </div>`).join("") : `<p class="empty">Noch nichts notiert.</p>`}
+      ${oben.length ? oben.map(n => {
+        const kinder = antworten(n.id);
+        return `<div class="note">
+          ${kopf(n)}
+          ${kinder.length ? `<div class="replies">${kinder.map(k => `<div class="note">${kopf(k)}</div>`).join("")}</div>` : ""}
+          ${ui.replyTo === n.id
+            ? `<div class="row replies" style="margin:8px 0 0">
+                 <input id="replyInput" placeholder="Antwort …" />
+                 <button class="go" data-act="sendReply" data-id="${n.id}">Senden</button>
+                 <button class="link" data-act="cancelReply">Abbrechen</button>
+               </div>`
+            : `<button class="link" data-act="reply" data-id="${n.id}">Antworten</button>`}
+        </div>`;
+      }).join("") : `<p class="empty">Noch nichts notiert.</p>`}
     </div>
   </section>`;
 }
@@ -683,6 +704,9 @@ document.addEventListener("click", e => {
     case "delNote": actions.deleteNote(id); break;
     case "addBoard": { const b = take("boardInput"); if (b) actions.addBoardNote(b); break; }
     case "delBoard": actions.deleteBoardNote(id); break;
+    case "reply": ui.replyTo = id; render(); break;
+    case "cancelReply": ui.replyTo = null; render(); break;
+    case "sendReply": { const b = take("replyInput"); if (b) actions.addBoardNote(b, id); else { ui.replyTo = null; render(); } break; }
     case "addEx": {
       const host_id = document.getElementById("exHost")?.value;
       const what = val("exWhat"), amount = val("exAmount"), spent_on = val("exDate");
@@ -703,6 +727,7 @@ document.addEventListener("keydown", e => {
   if (e.target.id === "tdText") document.querySelector('[data-act="saveTodo"]')?.click();
   if (e.target.id === "noteInput") document.querySelector('[data-act="addNote"]')?.click();
   if (e.target.id === "boardInput") document.querySelector('[data-act="addBoard"]')?.click();
+  if (e.target.id === "replyInput") document.querySelector('[data-act="sendReply"]')?.click();
   if (e.target.id === "hname") document.querySelector('[data-act="saveHost"]')?.click();
 });
 
@@ -719,7 +744,7 @@ function amTippen() {
 
 setInterval(() => {
   if (document.visibilityState !== "visible") return;
-  if (ui.busy || ui.editGuest || ui.editHost || ui.editTodo || amTippen()) return;
+  if (ui.busy || ui.editGuest || ui.editHost || ui.editTodo || ui.replyTo || amTippen()) return;
   load();
 }, 60000);
 
