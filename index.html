@@ -451,10 +451,14 @@ function viewWorkshops() {
 function render() {
   const focused = document.activeElement?.id;
   const pos = document.activeElement?.selectionStart;
+  const vals = {};
+  app.querySelectorAll("input, textarea, select").forEach(el => {
+    if (el.id && el.type !== "checkbox") vals[el.id] = el.value;
+  });
 
-  if (localStorage.getItem("dsch:pw") !== PASSWORT) { app.innerHTML = viewPassword(); return restore(focused, pos); }
+  if (localStorage.getItem("dsch:pw") !== PASSWORT) { app.innerHTML = viewPassword(); return restore(focused, pos, vals); }
   if (!ui.loaded) { app.innerHTML = `<p class="boot">Lade die Party …</p>`; return; }
-  if (!me || !S.hosts.some(h => h.id === me)) { app.innerHTML = viewGate(); return restore(focused, pos); }
+  if (!me || !S.hosts.some(h => h.id === me)) { app.innerHTML = viewGate(); return restore(focused, pos, vals); }
 
   const openTodos = S.todos.filter(t => !t.done).length;
   const tabs = [["schichten","Schichten"],["gaeste","Gästeliste"],["todos","To-dos"],["djs","DJ-Timetable"],["workshops","Workshops"]];
@@ -473,10 +477,16 @@ function render() {
     <main>${body}</main>
     <footer class="foot"><span>${ui.busy ? "Speichere …" : "Alle sehen dieselben Listen."}</span>
       <button class="link" data-act="reload">Neu laden</button></footer>`;
-  restore(focused, pos);
+  restore(focused, pos, vals);
 }
 
-function restore(id, pos) {
+function restore(id, pos, vals) {
+  if (vals) {
+    for (const key in vals) {
+      const el = document.getElementById(key);
+      if (el && vals[key] !== "" && el.value === "") el.value = vals[key];
+    }
+  }
   if (!id) return;
   const el = document.getElementById(id);
   if (!el) return;
@@ -485,6 +495,15 @@ function restore(id, pos) {
 }
 
 const val = id => (document.getElementById(id)?.value || "").trim();
+
+// Wert auslesen und Feld leeren – sonst steht der Text nach dem Absenden noch drin.
+function take(id) {
+  const el = document.getElementById(id);
+  if (!el) return "";
+  const v = (el.value || "").trim();
+  el.value = "";
+  return v;
+}
 
 /* --------------------------- Interaktion --------------------------- */
 
@@ -499,14 +518,14 @@ document.addEventListener("click", e => {
       break;
     }
     case "claim": actions.claim(id); break;
-    case "newHost": { const n = val("newHost"); if (!n) break;
+    case "newHost": { const n = take("newHost"); if (!n) break;
       const hit = S.hosts.find(h => h.name.toLowerCase() === n.toLowerCase());
       hit ? actions.claim(hit.id) : actions.createHost(n); break; }
     case "switch": actions.claim(null); break;
     case "tab": tab = el.dataset.tab; render(); break;
     case "reload": load(); break;
     case "shift": actions.toggleShift(id); break;
-    case "addGuest": { const n = val("guestName"); if (n) actions.addGuest(n); break; }
+    case "addGuest": { const n = take("guestName"); if (n) actions.addGuest(n); break; }
     case "editGuest": ui.editGuest = id; render(); break;
     case "cancelGuest": ui.editGuest = null; render(); break;
     case "saveGuest": { const name = val("gname"); const host_id = document.getElementById("ghost").value;
@@ -516,14 +535,18 @@ document.addEventListener("click", e => {
     case "cancelHost": ui.editHost = null; render(); break;
     case "saveHost": { const name = val("hname"); ui.editHost = null;
       if (name) actions.renameHost(id, name); else render(); break; }
-    case "addTodo": { const t = val("todoText"); if (t) actions.addTodo(t); break; }
+    case "addTodo": { const t = take("todoText"); if (t) actions.addTodo(t); break; }
     case "todo": actions.toggleTodo(id); break;
     case "delTodo": actions.deleteTodo(id); break;
     case "addDj": { const n = val("djName"), s = val("djStart"), t = val("djEnd");
-      if (n && s && t) actions.addDj(n, s, t); break; }
+      if (!n || !s || !t) break;
+      take("djName"); take("djStart"); take("djEnd");
+      actions.addDj(n, s, t); break; }
     case "delDj": actions.deleteDj(id); break;
-    case "addWs": { const p = val("wsPerson"), t = val("wsTitle");
-      if (p && t) actions.addWorkshop(p, t, val("wsDesc")); break; }
+    case "addWs": { const p = val("wsPerson"), t = val("wsTitle"), d = val("wsDesc");
+      if (!p || !t) break;
+      take("wsPerson"); take("wsTitle"); take("wsDesc");
+      actions.addWorkshop(p, t, d); break; }
     case "delWs": actions.deleteWorkshop(id); break;
   }
 });
@@ -537,8 +560,23 @@ document.addEventListener("keydown", e => {
   if (e.target.id === "hname") document.querySelector('[data-act="saveHost"]')?.click();
 });
 
-setInterval(() => { if (document.visibilityState === "visible" && !ui.busy && !ui.editGuest && !ui.editHost) load(); }, 20000);
-document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") load(); });
+// Nicht aktualisieren, solange jemand tippt oder etwas Halbfertiges im Feld steht.
+function amTippen() {
+  const a = document.activeElement;
+  if (a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.tagName === "SELECT")) return true;
+  return [...app.querySelectorAll("input, textarea")]
+    .some(el => el.type !== "checkbox" && el.value.trim() !== "");
+}
+
+setInterval(() => {
+  if (document.visibilityState !== "visible") return;
+  if (ui.busy || ui.editGuest || ui.editHost || amTippen()) return;
+  load();
+}, 60000);
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && !amTippen()) load();
+});
 
 if (localStorage.getItem("dsch:pw") === PASSWORT) load(); else render();
 </script>
