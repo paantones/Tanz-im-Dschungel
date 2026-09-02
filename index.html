@@ -168,7 +168,7 @@ const hh = h => String(h % 24).padStart(2,"0") + ":00";
 const spanLabel = s => `${hh(s[0])} – ${hh(s[1])}`;
 const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
 
-let S = { hosts:[], guests:[], signups:[], todos:[], djs:[], workshops:[], expenses:[], todoNotes:[] };
+let S = { hosts:[], guests:[], signups:[], todos:[], djs:[], workshops:[], expenses:[], todoNotes:[], board:[] };
 let me = localStorage.getItem("dsch:me");
 let tab = "schichten";
 let ui = { editGuest:null, editHost:null, editTodo:null, openTodo:null, busy:false, problem:null, loaded:false };
@@ -191,7 +191,7 @@ async function attempt(fn, tries = 4) {
 
 async function load() {
   try {
-    const [h, g, s, t, d, w, x, n] = await attempt(() => Promise.all([
+    const [h, g, s, t, d, w, x, n, b] = await attempt(() => Promise.all([
       sb.from("hosts").select("*").order("name"),
       sb.from("guests").select("*").order("created_at"),
       sb.from("shift_signups").select("*").order("created_at"),
@@ -200,11 +200,12 @@ async function load() {
       sb.from("workshops").select("*").order("created_at"),
       sb.from("expenses").select("*").order("spent_on"),
       sb.from("todo_notes").select("*").order("created_at"),
+      sb.from("board_notes").select("*").order("created_at"),
     ]));
-    const err = [h,g,s,t,d,w,x,n].find(r => r.error);
+    const err = [h,g,s,t,d,w,x,n,b].find(r => r.error);
     if (err) throw err.error;
     S = { hosts:h.data, guests:g.data, signups:s.data, todos:t.data, djs:d.data, workshops:w.data,
-          expenses:x.data, todoNotes:n.data };
+          expenses:x.data, todoNotes:n.data, board:b.data };
     ui.problem = null;
   } catch (e) {
     ui.problem = "Die Daten kommen gerade nicht durch: " + (e.message || e.code || String(e));
@@ -273,6 +274,8 @@ const actions = {
   deleteWorkshop(id) { return write(() => sb.from("workshops").delete().eq("id", id)); },
   addNote(todo_id, body) { return write(() => sb.from("todo_notes").insert({ todo_id, host_id: me, body })); },
   deleteNote(id) { return write(() => sb.from("todo_notes").delete().eq("id", id)); },
+  addBoardNote(body) { return write(() => sb.from("board_notes").insert({ host_id: me, body })); },
+  deleteBoardNote(id) { return write(() => sb.from("board_notes").delete().eq("id", id)); },
   addExpense(host_id, what, amount, spent_on) {
     return write(() => sb.from("expenses").insert({ host_id, what, amount, spent_on }));
   },
@@ -468,6 +471,28 @@ function viewTodos() {
   </section>`;
 }
 
+function viewNotizen() {
+  const wann = ts => {
+    const d = new Date(ts);
+    return isNaN(d) ? "" : d.toLocaleString("de-DE", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
+  };
+  return `<section class="block">
+    <h2>Notizen</h2>
+    <p class="hint">Alles, was in keine Liste passt. Einkaufszettel, Absprachen, wer was mitbringt.</p>
+    <div class="row">
+      <input id="boardInput" placeholder="Notiz schreiben …" />
+      <button class="go" data-act="addBoard">Senden</button>
+    </div>
+    <div class="notes" style="border:none; padding-top:0">
+      ${S.board.length ? [...S.board].reverse().map(n => `<div class="note">
+        <p>${esc(n.body)}</p>
+        <span class="noteMeta">${esc(hostName(n.host_id))} · ${wann(n.created_at)}
+          <button class="link" data-act="delBoard" data-id="${n.id}">löschen</button></span>
+      </div>`).join("") : `<p class="empty">Noch nichts notiert.</p>`}
+    </div>
+  </section>`;
+}
+
 const sortKey = t => { const [h,m] = (t || "00:00").split(":").map(Number); const v = h*60+m; return v < 720 ? v + 1440 : v; };
 
 function viewDjs() {
@@ -562,8 +587,8 @@ function render() {
   if (!me || !S.hosts.some(h => h.id === me)) { app.innerHTML = viewGate(); return restore(focused, pos, vals); }
 
   const openTodos = S.todos.filter(t => !t.done).length;
-  const tabs = [["schichten","Schichten"],["gaeste","Gästeliste"],["todos","To-dos"],["djs","DJ-Timetable"],["workshops","Workshops"],["auslagen","Auslagen"]];
-  const body = { schichten:viewSchichten, gaeste:viewGaeste, todos:viewTodos, djs:viewDjs, workshops:viewWorkshops, auslagen:viewAuslagen }[tab]();
+  const tabs = [["schichten","Schichten"],["gaeste","Gästeliste"],["todos","To-dos"],["notizen","Notizen"],["djs","DJ-Timetable"],["workshops","Workshops"],["auslagen","Auslagen"]];
+  const body = { schichten:viewSchichten, gaeste:viewGaeste, todos:viewTodos, notizen:viewNotizen, djs:viewDjs, workshops:viewWorkshops, auslagen:viewAuslagen }[tab]();
 
   app.innerHTML = `
     <header class="top">
@@ -656,6 +681,8 @@ document.addEventListener("click", e => {
     case "openTodo": ui.openTodo = ui.openTodo === id ? null : id; render(); break;
     case "addNote": { const b = take("noteInput"); if (b) actions.addNote(id, b); break; }
     case "delNote": actions.deleteNote(id); break;
+    case "addBoard": { const b = take("boardInput"); if (b) actions.addBoardNote(b); break; }
+    case "delBoard": actions.deleteBoardNote(id); break;
     case "addEx": {
       const host_id = document.getElementById("exHost")?.value;
       const what = val("exWhat"), amount = val("exAmount"), spent_on = val("exDate");
@@ -675,6 +702,7 @@ document.addEventListener("keydown", e => {
   if (e.target.id === "gname") document.querySelector('[data-act="saveGuest"]')?.click();
   if (e.target.id === "tdText") document.querySelector('[data-act="saveTodo"]')?.click();
   if (e.target.id === "noteInput") document.querySelector('[data-act="addNote"]')?.click();
+  if (e.target.id === "boardInput") document.querySelector('[data-act="addBoard"]')?.click();
   if (e.target.id === "hname") document.querySelector('[data-act="saveHost"]')?.click();
 });
 
