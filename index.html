@@ -63,10 +63,13 @@ select{font-size:14px; padding:8px 10px; max-width:100%;}
 .seg.voll{background:var(--green); color:#F2F5EC;}
 .ribScale{display:flex; justify-content:space-between; font-size:11px; color:var(--soft); border-top:1px solid var(--line); padding-top:5px;}
 
-.tabs{display:flex; flex-wrap:wrap; gap:4px; margin:16px 0 14px; border-bottom:1px solid var(--line);}
-.tab{background:none; border:none; padding:8px 10px; color:var(--soft); border-bottom:2px solid transparent; margin-bottom:-1px;}
-.tab.on{color:var(--ink); border-bottom-color:var(--bloom); font-weight:600;}
-.badge{display:inline-block; margin-left:6px; background:var(--stem); color:#1B2A20; border-radius:999px; font-size:11px; padding:1px 6px;}
+.tabs{display:flex; flex-wrap:wrap; gap:8px; margin:20px 0 24px;}
+.tab{background:var(--card); border:1px solid var(--line); border-radius:999px;
+  padding:11px 18px; font-size:16px; color:var(--ink);}
+.tab.on{background:var(--green); border-color:var(--green); color:#F4F7EE; font-weight:600;}
+.badge{display:inline-block; margin-left:7px; background:var(--stem); color:#1B2A20;
+  border-radius:999px; font-size:12px; padding:1px 7px;}
+.tab.on .badge{background:rgba(244,247,238,.28); color:#F4F7EE;}
 
 .block{margin-bottom:26px;}
 .hint{color:var(--soft); font-size:13px;}
@@ -511,8 +514,9 @@ function viewTodos() {
     </li>`;
   };
 
-  return `<section class="block">
-    <h2>To-dos</h2>
+  return `${meineAufgaben()}
+  <section class="block">
+    <h2>Alle To-dos</h2>
     <p class="hint">Auf eine Aufgabe tippen öffnet die Notizen dazu.</p>
     <div class="row">
       <input id="todoText" placeholder="Was muss noch passieren?" />
@@ -521,8 +525,7 @@ function viewTodos() {
     <ul class="cards">${offen.length ? offen.map(row).join("")
       : (fertig.length ? "" : `<li class="empty">Noch nichts offen. Schreib das erste rein.</li>`)}</ul>
     ${fertig.length ? `<h3 class="sub">Erledigt</h3><ul class="cards">${fertig.map(row).join("")}</ul>` : ""}
-  </section>
-  ${meineAufgaben()}`;
+  </section>`;
 }
 
 function meineAufgaben() {
@@ -709,7 +712,7 @@ function render() {
     <header class="top">
       <div class="topline"><h1>Tanz im Dschungel</h1>
         <button class="who" data-act="switch">${esc(hostName(me))}<span class="whoHint">wechseln</span></button></div>
-      ${ribbon()}
+      ${tab === "schichten" ? ribbon() : ""}
     </header>
     <nav class="tabs">${tabs.map(([k,t]) => `<button class="tab${tab === k ? " on" : ""}" data-act="tab" data-tab="${k}">${t}
       ${k === "gaeste" && S.guests.length ? `<span class="badge">${S.guests.length}</span>` : ""}
