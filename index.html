@@ -87,6 +87,8 @@ select{font-size:14px; padding:8px 10px; max-width:100%;}
 .pill .weg{text-decoration:none; font-size:15px; line-height:1; padding:0 0 0 4px; color:var(--soft);}
 .slotBtns{display:flex; align-items:center; gap:6px;}
 .slot .addOther{flex-basis:100%; margin:8px 0 0;}
+.owners{display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:10px;
+  border-top:1px solid var(--line); padding-top:10px;}
 .in,.out{border-radius:3px; padding:6px 12px; border:1px solid var(--green); background:var(--green); color:#F4F7EE; white-space:nowrap;}
 .out{background:none; color:var(--green);}
 .in:disabled{background:none; border-color:var(--line); color:var(--soft); cursor:default;}
@@ -174,10 +176,10 @@ const hh = h => String(h % 24).padStart(2,"0") + ":00";
 const spanLabel = s => `${hh(s[0])} – ${hh(s[1])}`;
 const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
 
-let S = { hosts:[], guests:[], signups:[], todos:[], djs:[], workshops:[], expenses:[], todoNotes:[], board:[], wsNotes:[] };
+let S = { hosts:[], guests:[], signups:[], todos:[], djs:[], workshops:[], expenses:[], todoNotes:[], board:[], wsNotes:[], owners:[] };
 let me = localStorage.getItem("dsch:me");
 let tab = "schichten";
-let ui = { editGuest:null, editHost:null, editTodo:null, openTodo:null, openWs:null, replyTo:null, addTo:null, busy:false, problem:null, loaded:false };
+let ui = { editGuest:null, editHost:null, editTodo:null, openTodo:null, openWs:null, addOwnerTo:null, replyTo:null, addTo:null, busy:false, problem:null, loaded:false };
 const app = document.getElementById("app");
 
 /* ------------------------------ Daten ------------------------------ */
@@ -197,7 +199,7 @@ async function attempt(fn, tries = 4) {
 
 async function load() {
   try {
-    const [h, g, s, t, d, w, x, n, b, k] = await attempt(() => Promise.all([
+    const [h, g, s, t, d, w, x, n, b, k, o] = await attempt(() => Promise.all([
       sb.from("hosts").select("*").order("name"),
       sb.from("guests").select("*").order("created_at"),
       sb.from("shift_signups").select("*").order("created_at"),
@@ -208,11 +210,12 @@ async function load() {
       sb.from("todo_notes").select("*").order("created_at"),
       sb.from("board_notes").select("*").order("created_at"),
       sb.from("workshop_notes").select("*").order("created_at"),
+      sb.from("todo_owners").select("*").order("created_at"),
     ]));
-    const err = [h,g,s,t,d,w,x,n,b,k].find(r => r.error);
+    const err = [h,g,s,t,d,w,x,n,b,k,o].find(r => r.error);
     if (err) throw err.error;
     S = { hosts:h.data, guests:g.data, signups:s.data, todos:t.data, djs:d.data, workshops:w.data,
-          expenses:x.data, todoNotes:n.data, board:b.data, wsNotes:k.data };
+          expenses:x.data, todoNotes:n.data, board:b.data, wsNotes:k.data, owners:o.data };
     ui.problem = null;
   } catch (e) {
     ui.problem = "Die Daten kommen gerade nicht durch: " + (e.message || e.code || String(e));
@@ -239,6 +242,7 @@ const hostName = id => S.hosts.find(h => h.id === id)?.name || "Unbekannt";
 const seatsOf = sid => S.signups.filter(x => x.shift_id === sid);
 const guestsOf = hid => S.guests.filter(g => g.host_id === hid);
 const signupName = x => x.host_id ? hostName(x.host_id) : (x.name || "Unbekannt");
+const ownersOf = id => S.owners.filter(o => o.todo_id === id);
 
 /* ---------------------------- Aktionen ---------------------------- */
 
@@ -282,6 +286,12 @@ const actions = {
   },
   deleteTodo(id) { return write(() => sb.from("todos").delete().eq("id", id)); },
   updateTodo(id, text) { return write(() => sb.from("todos").update({ text }).eq("id", id)); },
+  addOwner(todo_id, name) {
+    ui.addOwnerTo = null;
+    const hit = S.hosts.find(h => h.name.toLowerCase() === name.toLowerCase());
+    return write(() => sb.from("todo_owners").insert(hit ? { todo_id, host_id: hit.id } : { todo_id, name }));
+  },
+  removeOwner(id) { return write(() => sb.from("todo_owners").delete().eq("id", id)); },
   addDj(name, start_time, end_time) { return write(() => sb.from("djs").insert({ name, start_time, end_time })); },
   deleteDj(id) { return write(() => sb.from("djs").delete().eq("id", id)); },
   addWorkshop(person, title, description) { return write(() => sb.from("workshops").insert({ person, title, description })); },
@@ -463,6 +473,22 @@ function viewTodos() {
     </div>`;
   };
 
+  const verantwortlich = t => {
+    const list = ownersOf(t.id);
+    return `<div class="owners">
+      <span class="by">Verantwortlich:</span>
+      ${list.length ? list.map(o => `<span class="pill">${esc(signupName(o))}<button class="link weg" data-act="delOwner" data-id="${o.id}" title="Entfernen">×</button></span>`).join("")
+        : `<em class="by">noch niemand</em>`}
+      ${ui.addOwnerTo === t.id
+        ? `<span class="row" style="margin:0; flex-basis:100%">
+             <input id="ownerName" placeholder="Name" />
+             <button class="go" data-act="saveOwner" data-id="${t.id}">Eintragen</button>
+             <button class="link" data-act="cancelOwner">Abbrechen</button>
+           </span>`
+        : `<button class="link" data-act="addOwner" data-id="${t.id}">+ Person</button>`}
+    </div>`;
+  };
+
   const row = t => {
     if (ui.editTodo === t.id) return `<li class="card edit">
       <input id="tdText" value="${esc(t.text)}" />
@@ -476,12 +502,12 @@ function viewTodos() {
         <input type="checkbox" ${t.done ? "checked" : ""} data-act="todo" data-id="${t.id}" />
         <button class="todoMain" data-act="openTodo" data-id="${t.id}">
           <span class="txt">${esc(t.text)}</span>
-          <span class="by">von ${esc(hostName(t.done ? (t.done_by || t.created_by) : t.created_by))}${t.done ? " · erledigt" : ""}${n ? ` · ${n} ${n === 1 ? "Notiz" : "Notizen"}` : ""}</span>
+          <span class="by">von ${esc(hostName(t.done ? (t.done_by || t.created_by) : t.created_by))}${t.done ? " · erledigt" : ""}${ownersOf(t.id).length ? " · für " + ownersOf(t.id).map(o => esc(signupName(o))).join(", ") : ""}${n ? ` · ${n} ${n === 1 ? "Notiz" : "Notizen"}` : ""}</span>
         </button>
         <button class="link" data-act="editTodo" data-id="${t.id}">Ändern</button>
         <button class="link" data-act="delTodo" data-id="${t.id}">Löschen</button>
       </div>
-      ${offen ? notenBlock(t) : ""}
+      ${offen ? verantwortlich(t) + notenBlock(t) : ""}
     </li>`;
   };
 
@@ -495,6 +521,24 @@ function viewTodos() {
     <ul class="cards">${offen.length ? offen.map(row).join("")
       : (fertig.length ? "" : `<li class="empty">Noch nichts offen. Schreib das erste rein.</li>`)}</ul>
     ${fertig.length ? `<h3 class="sub">Erledigt</h3><ul class="cards">${fertig.map(row).join("")}</ul>` : ""}
+  </section>
+  ${meineAufgaben()}`;
+}
+
+function meineAufgaben() {
+  const meins = S.todos.filter(t => S.owners.some(o => o.todo_id === t.id && o.host_id === me));
+  const offen = meins.filter(t => !t.done);
+  const fertig = meins.filter(t => t.done);
+  const zeile = t => `<li class="card todo${t.done ? " done" : ""}">
+    <label><input type="checkbox" ${t.done ? "checked" : ""} data-act="todo" data-id="${t.id}" />
+      <span class="txt">${esc(t.text)}</span></label>
+  </li>`;
+  return `<section class="block">
+    <h2>Meine Aufgaben</h2>
+    <p class="hint">Alles, wofür du eingetragen bist.</p>
+    ${meins.length
+      ? `<ul class="cards">${offen.map(zeile).join("")}${fertig.map(zeile).join("")}</ul>`
+      : `<p class="empty">Du bist für nichts eingetragen.</p>`}
   </section>`;
 }
 
@@ -759,6 +803,10 @@ document.addEventListener("click", e => {
     case "openTodo": ui.openTodo = ui.openTodo === id ? null : id; render(); break;
     case "addNote": { const b = take("noteInput"); if (b) actions.addNote(id, b); break; }
     case "delNote": actions.deleteNote(id); break;
+    case "addOwner": ui.addOwnerTo = id; render(); break;
+    case "cancelOwner": ui.addOwnerTo = null; render(); break;
+    case "saveOwner": { const n = take("ownerName"); if (n) actions.addOwner(id, n); else { ui.addOwnerTo = null; render(); } break; }
+    case "delOwner": actions.removeOwner(id); break;
     case "addBoard": { const b = take("boardInput"); if (b) actions.addBoardNote(b); break; }
     case "delBoard": actions.deleteBoardNote(id); break;
     case "reply": ui.replyTo = id; render(); break;
@@ -787,6 +835,7 @@ document.addEventListener("keydown", e => {
   if (e.target.id === "replyInput") document.querySelector('[data-act="sendReply"]')?.click();
   if (e.target.id === "otherName") document.querySelector('[data-act="saveOther"]')?.click();
   if (e.target.id === "wsNoteInput") document.querySelector('[data-act="addWsNote"]')?.click();
+  if (e.target.id === "ownerName") document.querySelector('[data-act="saveOwner"]')?.click();
   if (e.target.id === "hname") document.querySelector('[data-act="saveHost"]')?.click();
 });
 
@@ -803,7 +852,7 @@ function amTippen() {
 
 setInterval(() => {
   if (document.visibilityState !== "visible") return;
-  if (ui.busy || ui.editGuest || ui.editHost || ui.editTodo || ui.replyTo || ui.addTo || amTippen()) return;
+  if (ui.busy || ui.editGuest || ui.editHost || ui.editTodo || ui.replyTo || ui.addTo || ui.addOwnerTo || amTippen()) return;
   load();
 }, 60000);
 
