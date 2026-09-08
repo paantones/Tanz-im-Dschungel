@@ -3,864 +3,559 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Tanz im Dschungel</title>
-<meta name="theme-color" content="#E7EBDE" />
+<title>Backgammon-Liga</title>
+<meta name="theme-color" content="#C1946A" />
 <link rel="manifest" href="/manifest.webmanifest" />
 <link rel="icon" href="/icon-192.png" />
 <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-title" content="Dschungel" />
+<meta name="apple-mobile-web-app-title" content="Backgammon" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="mobile-web-app-capable" content="yes" />
-<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,600&family=Karla:wght@400;600&display=swap" rel="stylesheet" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
 <style>
 :root{
-  --paper:#E7EBDE; --card:#FAFBF3; --ink:#1B2A20; --soft:#5F6E5F;
-  --green:#33604A; --stem:#8AA57C; --bloom:#A8436A; --line:#C9D2BC;
+  --wood:#C1946A; --wood-panel:#D3AE86; --field:#EBDCC4;
+  --ink:#1B120B; --ink-soft:#54402D; --ink-faint:#5A4029;
+  --horn:#1E1712; --ivory:#F5EFE2; --pearl:#F2EADA; --bark:#4A3220; --bark-edge:#2A1D14; --line:rgba(122,82,49,0.45);
 }
-*{box-sizing:border-box;}
-html,body{margin:0; background:var(--paper);}
+*,*::before,*::after{box-sizing:border-box}
 body{
-  color:var(--ink); font-family:'Karla',ui-sans-serif,system-ui,sans-serif;
-  font-size:15px; line-height:1.5;
-  padding:20px 16px calc(40px + env(safe-area-inset-bottom));
-  max-width:760px; margin:0 auto; min-height:100vh;
+  margin:0; padding:0 0 56px; min-height:100vh;
+  font-family:'IBM Plex Sans',system-ui,sans-serif; color:var(--ink);
+  background:var(--wood);
 }
-h1{font-family:'Newsreader',Georgia,serif; font-weight:600; font-size:30px; margin:0; letter-spacing:-.01em;}
-h2{font-family:'Newsreader',Georgia,serif; font-weight:600; font-size:21px; margin:0 0 2px;}
-h3{font-family:'Newsreader',Georgia,serif; font-weight:600; font-size:17px; margin:0;}
-p{margin:0 0 10px;}
-button{font-family:inherit; font-size:14px; cursor:pointer;}
-button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible{outline:2px solid var(--bloom); outline-offset:2px;}
-input,textarea,select{font-family:inherit; font-size:15px; padding:9px 11px; border:1px solid var(--line);
-  border-radius:3px; background:var(--card); color:var(--ink); min-width:0;}
-input,textarea{flex:1; width:100%;}
-input[type=time]{flex:0 0 auto; width:auto;}
-input[type=checkbox]{flex:none; width:17px; height:17px; accent-color:var(--green);}
-select{font-size:14px; padding:8px 10px; max-width:100%;}
-
-.boot{padding:60px 0; color:var(--soft);}
-.gate{padding:32px 0;}
-.gate .lead{color:var(--soft); max-width:46ch; margin-bottom:22px;}
-.gate h2{margin:22px 0 10px;}
-.gateLabel{font-size:13px; color:var(--soft); margin:18px 0 8px;}
-.chips{display:flex; flex-wrap:wrap; gap:8px;}
-.chip{background:var(--card); border:1px solid var(--line); border-radius:999px; padding:7px 14px; color:var(--ink);}
-.chip:hover{border-color:var(--green);}
-
-.top{margin-bottom:18px;}
-.topline{display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:14px;}
-.who{background:none; border:none; color:var(--green); font-weight:600; padding:0; text-align:right;}
-.whoHint{color:var(--soft); font-weight:400; font-size:12px; margin-left:6px;}
-
-.ribbon{margin-bottom:22px; background:var(--card); border:1px solid var(--line); border-radius:4px; padding:12px 12px 8px;}
-.ribLabel{font-size:12px; color:var(--soft); margin-bottom:4px;}
-.ribRow{display:flex; gap:2px; margin-bottom:10px;}
-.seg{flex:1 1 0; height:26px; border:none; border-radius:2px; position:relative; color:var(--ink); font-size:11px; padding:0;}
-.seg span{position:absolute; left:4px; top:6px; opacity:.75;}
-.seg.leer{background:#DDE3D2;}
-.seg.halb{background:var(--stem);}
-.seg.voll{background:var(--green); color:#F2F5EC;}
-.ribScale{display:flex; justify-content:space-between; font-size:11px; color:var(--soft); border-top:1px solid var(--line); padding-top:5px;}
-
-.tabs{display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr));
-  gap:8px; margin:20px 0 24px;}
-.tab{background:var(--card); border:1px solid var(--line); border-radius:999px;
-  padding:12px 14px; font-size:16px; color:var(--ink); text-align:center;}
-.tab.on{background:var(--green); border-color:var(--green); color:#F4F7EE; font-weight:600;}
-.badge{display:inline-block; margin-left:7px; background:var(--stem); color:#1B2A20;
-  border-radius:999px; font-size:12px; padding:1px 7px;}
-.tab.on .badge{background:rgba(244,247,238,.28); color:#F4F7EE;}
-
-.block{margin-bottom:26px;}
-.hint{color:var(--soft); font-size:13px;}
-.tally{color:var(--green); font-weight:600; margin-bottom:16px;}
-.empty{color:var(--soft); font-style:italic; padding:10px 0; list-style:none;}
-.sub{margin:18px 0 6px; color:var(--soft);}
-.problem{background:#F6E2E7; border-left:3px solid var(--bloom); padding:8px 12px; font-size:14px; margin-bottom:12px;}
-
-.slots{list-style:none; padding:0; margin:10px 0 0;}
-.slot{display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid var(--line);
-  border-left:3px solid var(--line); border-radius:3px; padding:10px 12px; margin-bottom:6px;}
-.slot.mine{border-left-color:var(--bloom); background:#FBF4F7;}
-.slot.full{opacity:.7;}
-.time{font-variant-numeric:tabular-nums; font-weight:600; min-width:104px;}
-.people{flex:1; display:flex; flex-wrap:wrap; gap:6px; align-items:center;}
-.people em{color:var(--soft); font-size:13px;}
-.pill{background:#E3EAD8; border-radius:999px; padding:2px 9px; font-size:13px; display:inline-flex; align-items:center; gap:2px;}
-.pill .weg{text-decoration:none; font-size:15px; line-height:1; padding:0 0 0 4px; color:var(--soft);}
-.slotBtns{display:flex; align-items:center; gap:6px;}
-.slot .addOther{flex-basis:100%; margin:8px 0 0;}
-.owners{display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:10px;
-  border-top:1px solid var(--line); padding-top:10px;}
-.in,.out{border-radius:3px; padding:6px 12px; border:1px solid var(--green); background:var(--green); color:#F4F7EE; white-space:nowrap;}
-.out{background:none; color:var(--green);}
-.in:disabled{background:none; border-color:var(--line); color:var(--soft); cursor:default;}
-
-.row{display:flex; gap:8px; margin:10px 0;}
-.row.wrap{flex-wrap:wrap;}
-.grow{flex:1 1 160px;}
-.form{display:flex; flex-direction:column; gap:8px; margin:10px 0 16px;}
-.go{background:var(--green); color:#F4F7EE; border:1px solid var(--green); border-radius:3px; padding:9px 16px; white-space:nowrap;}
-.go:disabled{background:none; color:var(--soft); border-color:var(--line); cursor:default;}
-.go.wide{align-self:flex-start;}
-.link{background:none; border:none; color:var(--soft); text-decoration:underline; padding:2px 4px; white-space:nowrap;}
-.link:hover{color:var(--bloom);}
-
-.cards{list-style:none; padding:0; margin:10px 0 0;}
-.card{display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid var(--line);
-  border-radius:3px; padding:10px 12px; margin-bottom:6px;}
-.card.edit{flex-wrap:wrap;}
-.card.edit input{flex:1 1 160px;}
-.card label{display:flex; align-items:center; gap:10px; flex:1; cursor:pointer;}
-.card.col{flex-direction:column; align-items:stretch;}
-.todoRow{display:flex; align-items:flex-start; gap:10px;}
-.todoMain{flex:1; display:flex; flex-direction:column; gap:2px; background:none; border:none;
-  padding:0; text-align:left; color:inherit; font-size:15px; line-height:1.4;}
-.todoMain .by{white-space:normal;}
-.todo.done .txt{text-decoration:line-through; color:var(--soft);}
-.notes{border-top:1px solid var(--line); margin-top:10px; padding-top:10px;}
-.note{padding:6px 0; border-bottom:1px solid rgba(201,210,188,.5);}
-.note p{margin:0; white-space:pre-wrap;}
-.noteMeta{font-size:12px; color:var(--soft);}
-.noteMeta .link{font-size:12px;}
-.replies{margin:8px 0 0 4px; border-left:2px solid var(--line); padding-left:10px;}
-.replies .note:last-child{border-bottom:none; padding-bottom:0;}
-.betrag{font-variant-numeric:tabular-nums; white-space:nowrap;}
-.by{font-size:12px; color:var(--soft); white-space:nowrap;}
-.group{margin-bottom:14px;}
-.group h3 .link{font-size:12px; margin-left:6px;}
-.count{font-family:'Karla',sans-serif; font-size:12px; color:var(--soft); font-weight:400;}
-.card.ws{align-items:flex-start;}
-.card.ws.col h3{margin:0;}
-.card.ws > div{flex:1;}
-.desc{margin:6px 0 0; max-width:62ch; white-space:pre-wrap;}
-
-.timetable{list-style:none; padding:0; margin:14px 0 0; border-left:2px solid var(--stem);}
-.timetable li{display:flex; align-items:center; gap:12px; padding:9px 0 9px 14px; position:relative;}
-.timetable li.empty::before{display:none;}
-.timetable li::before{content:''; position:absolute; left:-5px; top:50%; width:8px; height:8px; border-radius:50%;
-  background:var(--green); transform:translateY(-50%);}
-.slotTime{font-variant-numeric:tabular-nums; color:var(--soft); min-width:106px;}
-.djName{flex:1; font-family:'Newsreader',Georgia,serif; font-size:18px;}
-
-.foot{display:flex; justify-content:space-between; align-items:center; gap:10px;
-  border-top:1px solid var(--line); padding-top:10px; font-size:12px; color:var(--soft); margin-top:24px;}
-
-@media (max-width:560px){
-  .slot{flex-wrap:wrap;}
-  .time{min-width:auto;}
-  .people{flex-basis:100%; order:3;}
-  .timetable li{flex-wrap:wrap;}
-}
-@media (prefers-reduced-motion:reduce){ *{transition:none !important;} }
+.wrap{max-width:1080px;margin:0 auto}
+.head{background:var(--bark)}
+.head-in{max-width:1080px;margin:0 auto;padding:26px 18px 22px}
+.head h1{color:var(--pearl)}
+.head .sub{color:var(--wood)}
+.stack,.bar{padding:0 18px}
+h1{font-family:'Fraunces',Georgia,serif;font-weight:800;font-size:clamp(30px,7vw,52px);line-height:.95;letter-spacing:-.02em;margin:0}
+.sub{color:var(--ink-soft);font-size:14px;margin:8px 0 0;max-width:52ch}
+.strip{display:block;width:100%;height:48px;margin:0 0 26px}
+.stack{max-width:620px;margin:0 auto}
+.panel{background:var(--wood-panel);border:1px solid var(--line);border-radius:4px;padding:18px}
+.panel+.panel{margin-top:20px}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);margin:0 0 14px}
+.row{display:grid;grid-template-columns:36px 1fr auto;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+.row:first-of-type{border-top:none}
+.pname{font-family:'Fraunces',Georgia,serif;font-size:19px;font-weight:600}
+.meta{font-size:12px;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;margin-top:2px}
+.score{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;text-align:right}
+label{display:block;font-size:12px;color:var(--ink-soft);margin:0 0 5px}
+.field{margin-bottom:13px}
+input,select{width:100%;background:var(--field);border:1px solid var(--line);border-radius:3px;color:var(--ink);font-family:inherit;font-size:16px;padding:10px}
+select{appearance:none;cursor:pointer}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--horn);outline-offset:2px}
+.btn{width:100%;background:var(--horn);color:var(--pearl);border:none;border-radius:3px;padding:12px 14px;font-size:16px;font-weight:600;font-family:inherit;cursor:pointer}
+.btn:hover{background:#332720}
+.btn:disabled{background:rgba(30,23,18,.25);color:#F0E9DC;cursor:not-allowed}
+.ghost{background:none;border:1px solid var(--line);color:var(--ink-soft);border-radius:3px;padding:5px 10px;font-size:12px;font-family:'IBM Plex Mono',monospace;cursor:pointer}
+.ghost:hover{color:var(--ink);border-color:var(--horn)}
+.inline{display:flex;gap:8px}.inline input{flex:1}.inline .btn{width:auto;padding:10px 16px}
+.preview{font-family:'IBM Plex Mono',monospace;font-size:13px;color:#3E2D1E;margin:0 0 13px;min-height:18px}
+.empty{color:var(--ink-soft);font-size:14px;margin:0}
+.note{color:var(--ink-soft);font-size:12px;line-height:1.55;margin:14px 0 0}
+.err{color:#7A2418;font-size:13px;margin:8px 0 0}
+ul.log{list-style:none;margin:0;padding:0;max-height:340px;overflow-y:auto}
+ul.log li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:14px}
+ul.log li:first-child{border-top:none}
+.d{font-family:'IBM Plex Mono',monospace;font-size:12px;color:#3E2D1E;white-space:nowrap}
+.tag{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft)}
+details.alt summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;
+  font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint)}
+details.alt summary::-webkit-details-marker{display:none}
+details.alt summary::after{content:"+";font-size:17px;letter-spacing:0}
+details.alt[open] summary::after{content:"−"}
+details.alt[open] summary{margin-bottom:14px}
+.arow{display:grid;grid-template-columns:24px 1fr auto;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+.arow:first-of-type{border-top:none}
+.arank{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-soft)}
+.aname{font-family:'Fraunces',Georgia,serif;font-size:17px}
+.apts{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600}
+.dt{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);margin-right:8px}
+ul.log li.edit{display:block}
+ul.log li.edit .btn{width:auto;padding:9px 16px}
+.gate{max-width:380px;margin:12vh auto 0;padding:0 18px}
+.chip{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ivory);background:var(--horn);padding:3px 8px;border-radius:2px;margin-bottom:16px}
+.bar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:22px}
+.hidden{display:none}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
-<div id="app"><p class="boot">Lade die Party …</p></div>
+
+<!-- ======================================================================
+     HIER DEINE DREI WERTE EINTRAGEN (zwischen den Anführungszeichen)
+     ====================================================================== -->
+<script>
+  const SUPABASE_URL  = "https://swhmiipxeynplkjenncz.supabase.co";
+  const SUPABASE_KEY  = "sb_publishable_vnM2nAZ0MCafE09VyUw8dQ_IGxmcwrB";
+  const PASSWORT      = "doppelsechs";
+</script>
+<!-- ====================================================================== -->
+
+<div class="wrap">
+
+  <div id="gate" class="gate">
+    <span class="chip">Geschlossene Runde</span>
+    <h1>Backgammon-Liga</h1>
+    <p class="sub">Passwort eingeben, dann geht's zur Tabelle.</p>
+    <div style="height:20px"></div>
+    <div class="field">
+      <label for="pw">Passwort</label>
+      <input id="pw" type="password" autocomplete="current-password" />
+    </div>
+    <button class="btn" id="gateBtn">Öffnen</button>
+    <p class="err hidden" id="gateErr">Passt nicht. Nochmal versuchen.</p>
+  </div>
+
+  <div id="app" class="hidden">
+    <div class="head">
+      <div class="head-in">
+        <h1>Backgammon-Liga</h1>
+        <p class="sub">Jeder Sieg bringt Punkte: einfach 1, Gammon 2, Backgammon 3. Wer verliert, bekommt nichts abgezogen. Elo und Plus-Minus stehen unten als Nebenwertungen.</p>
+      </div>
+    </div>
+    <svg class="strip" viewBox="0 0 380 48" preserveAspectRatio="none" aria-hidden="true" id="strip"></svg>
+
+    <div class="stack">
+      <div class="panel">
+        <p class="eyebrow">Tabelle</p>
+        <div id="table"><p class="empty">Wird geladen …</p></div>
+      </div>
+
+      <div class="panel">
+        <p class="eyebrow">Partie eintragen</p>
+        <div class="field">
+          <label for="win">Gewonnen hat</label>
+          <select id="win"><option value="">Spieler*in wählen</option></select>
+        </div>
+        <div class="field">
+          <label for="los">Verloren hat</label>
+          <select id="los"><option value="">Spieler*in wählen</option></select>
+        </div>
+        <div class="field">
+          <label for="mult">Höhe des Sieges</label>
+          <select id="mult">
+            <option value="1">Einfach — 1 Punkt</option>
+            <option value="2">Gammon — 2 Punkte</option>
+            <option value="3">Backgammon — 3 Punkte</option>
+          </select>
+        </div>
+        <p class="preview" id="preview"></p>
+        <button class="btn" id="addMatch" disabled>Partie eintragen</button>
+      </div>
+
+      <div class="panel">
+        <p class="eyebrow">Verlauf</p>
+        <div id="log"><p class="empty">Wird geladen …</p></div>
+      </div>
+
+      <div class="panel">
+        <p class="eyebrow">Spieler*in anlegen</p>
+        <div class="inline">
+          <input id="newName" placeholder="Name" autocomplete="off" />
+          <button class="btn" id="addPlayer">Anlegen</button>
+        </div>
+        <p class="err hidden" id="msg"></p>
+        <p class="note">Wer neu dazukommt, startet bei 1000 und nimmt niemandem etwas weg. Ob jemand 3 oder 300 Partien gespielt hat, spielt für die Tabelle keine Rolle — nur gegen wen.</p>
+      </div>
+
+      <details class="panel alt">
+        <summary>Nebenwertung: Elo</summary>
+        <p class="note" style="margin:0 0 12px">Alle starten bei 1000. Was der*die Gewinner*in bekommt, verliert der*die Verlierer*in — wer stärker eingeschätzt ist, gewinnt weniger und verliert mehr. Aussagekräftig erst mit vielen Partien.</p>
+        <div id="altElo"><p class="empty">Noch keine Partie.</p></div>
+      </details>
+
+      <details class="panel alt">
+        <summary>Nebenwertung: Plus und Minus</summary>
+        <p class="note" style="margin:0 0 12px">Wer gewinnt, bekommt 1, 2 oder 3 Punkte, wer verliert, verliert genauso viele. Ohne Elo, also unabhängig davon, wie stark der*die Gegner*in ist.</p>
+        <div id="altPm"><p class="empty">Noch keine Partie.</p></div>
+      </details>
+
+      <details class="panel alt">
+        <summary>Nebenwertung: Punkte pro Partie</summary>
+        <p class="note" style="margin:0 0 12px">Gewonnene Punkte geteilt durch die Zahl der Partien, mal 10. Belohnt gute Quoten statt vieler Abende — wer noch nicht gespielt hat, steht unten ohne Wert.</p>
+        <div id="altAvg"><p class="empty">Noch keine Partie.</p></div>
+      </details>
+
+      <details class="panel alt">
+        <summary>Direkter Vergleich</summary>
+        <p class="note" style="margin:0 0 12px">Nur die Partien der beiden gegeneinander, gezählt mit 1, 2 oder 3 Punkten pro Sieg.</p>
+        <div class="field">
+          <label for="h2hA">Erste Person</label>
+          <select id="h2hA"><option value="">Spieler*in wählen</option></select>
+        </div>
+        <div class="field">
+          <label for="h2hB">Zweite Person</label>
+          <select id="h2hB"><option value="">Spieler*in wählen</option></select>
+        </div>
+        <div id="h2h"><p class="empty">Zwei Personen wählen.</p></div>
+      </details>
+
+      <div class="bar">
+        <span class="tag" id="stand">—</span>
+        <button class="ghost" id="reload">Neu laden</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script type="module">
-/* ======================= EINSTELLUNGEN ======================= */
-const SUPABASE_URL = "https://jgvkequwqvkpyqcpntvo.supabase.co";
-const SUPABASE_KEY = "sb_publishable_xw8Cd5xLxAhba-y50jHe7g_S34PVoHh";
-const PASSWORT     = "doppelsechs";
-/* ============================================================= */
-
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
-const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const EINLASS = [[20,21],[21,22],[22,23],[23,24],[24,25],[25,26]];
-const BAR     = [[16,18],[18,20],[20,22],[22,24],[24,26],[26,28]];
-const SHIFTS = [
-  ...BAR.map(s => ({ id:"b"+s[0], kind:"bar", span:s, seats:2 })),
-  ...EINLASS.map(s => ({ id:"e"+s[0], kind:"einlass", span:s, seats:1 })),
-];
-const hh = h => String(h % 24).padStart(2,"0") + ":00";
-const spanLabel = s => `${hh(s[0])} – ${hh(s[1])}`;
-const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+const START = 1000, K = 24;
+const $ = (id) => document.getElementById(id);
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let S = { hosts:[], guests:[], signups:[], todos:[], djs:[], workshops:[], expenses:[], todoNotes:[], board:[], wsNotes:[], owners:[] };
-let me = localStorage.getItem("dsch:me");
-let tab = "schichten";
-let ui = { editGuest:null, editHost:null, editTodo:null, openTodo:null, openWs:null, addOwnerTo:null, replyTo:null, addTo:null, busy:false, problem:null, loaded:false };
-const app = document.getElementById("app");
+let players = [], matches = [], ratings = {}, stats = {}, deltas = {}, plus = {}, pm = {};
+let editingId = null;
 
-/* ------------------------------ Daten ------------------------------ */
-
-function withTimeout(p, ms = 15000) {
-  return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))]);
-}
-
-async function attempt(fn, tries = 4) {
-  let last;
-  for (let i = 0; i < tries; i++) {
-    try { return await withTimeout(fn()); }
-    catch (e) { last = e; await new Promise(r => setTimeout(r, 400 * (i + 1))); }
+// Punkte-Strip zeichnen
+{
+  const N = 12, W = 380 / N, TIP = 46;
+  let tri = "", edge = "", pearl = "";
+  for (let i = 0; i < N; i++){
+    const x = i * W, t = x + W / 2;
+    tri   += `<polygon points="${x},0 ${x+W},0 ${t},${TIP}" fill="#4A3220"/>`;
+    edge  += `<path d="M${x},0 L${t},${TIP} L${x+W},0" fill="none" stroke="#2A1D14" stroke-width="1.5"/>`;
+    pearl += `<path d="M${x+1.5},3 L${t},${TIP-3} L${x+W-1.5},3" fill="none" stroke="#F2EADA" stroke-width="2.6" stroke-dasharray="2.6 5"/>`;
   }
-  throw last;
+  $("strip").innerHTML = tri + edge + pearl;
 }
 
-async function load() {
+// --- Passwort ---
+function unlock(){
+  $("gate").classList.add("hidden");
+  $("app").classList.remove("hidden");
+  try { localStorage.setItem("bgl-pw", PASSWORT); } catch(e){}
+  $("stand").textContent = "verbinde …";
+  setTimeout(() => load(), 400);
+  setInterval(() => load(3), 30000);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) load(3);
+  });
+}
+$("gateBtn").onclick = () => {
+  if ($("pw").value === PASSWORT) unlock();
+  else $("gateErr").classList.remove("hidden");
+};
+$("pw").onkeydown = (e) => { if (e.key === "Enter") $("gateBtn").click(); };
+try { if (localStorage.getItem("bgl-pw") === PASSWORT) unlock(); } catch(e){}
+
+// --- Elo ---
+const expected = (a,b) => 1 / (1 + Math.pow(10, (b-a)/400));
+
+function replay(){
+  ratings = {}; stats = {}; deltas = {}; plus = {}; pm = {};
+  players.forEach(p => { ratings[p.id] = START; stats[p.id] = {w:0,l:0}; plus[p.id] = 0; pm[p.id] = 0; });
+  [...matches].sort((a,b) => new Date(a.created_at) - new Date(b.created_at)).forEach(m => {
+    if (ratings[m.winner] === undefined || ratings[m.loser] === undefined) return;
+    const d = Math.round(K * (m.mult||1) * (1 - expected(ratings[m.winner], ratings[m.loser])));
+    ratings[m.winner] += d; ratings[m.loser] -= d;
+    stats[m.winner].w++; stats[m.loser].l++;
+    const v = m.mult || 1;
+    plus[m.winner] += v; pm[m.winner] += v; pm[m.loser] -= v;
+    deltas[m.id] = d;
+  });
+}
+
+const partien = (n) => `${n} ${n === 1 ? "Partie" : "Partien"}`;
+const siege = (n) => `${n} ${n === 1 ? "Sieg" : "Siege"}`;
+
+const nameOf = (id) => (players.find(p => p.id === id) || {}).name || "—";
+
+// --- Laden & Zeichnen ---
+function withTimeout(p, ms = 15000){
+  return Promise.race([
+    Promise.resolve(p),
+    new Promise((_, rej) => setTimeout(() => rej(new Error("Zeitüberschreitung — Datenbank antwortet nicht")), ms))
+  ]);
+}
+
+function fail(msg){
+  $("table").innerHTML = `<p class="err">Keine Verbindung zur Datenbank: ${msg}</p>`;
+  $("stand").textContent = "keine Verbindung";
+}
+
+function retry(tries, msg){
+  if (tries > 1){
+    $("stand").textContent = "verbinde …";
+    setTimeout(() => load(tries - 1), (7 - tries) * 1000);
+  } else {
+    fail(msg);
+  }
+}
+
+let busy = false;
+
+async function load(tries = 6){
+  if (busy) return;
+  busy = true;
+  let pRes, mRes;
   try {
-    const [h, g, s, t, d, w, x, n, b, k, o] = await attempt(() => Promise.all([
-      sb.from("hosts").select("*").order("name"),
-      sb.from("guests").select("*").order("created_at"),
-      sb.from("shift_signups").select("*").order("created_at"),
-      sb.from("todos").select("*").order("created_at"),
-      sb.from("djs").select("*").order("start_time"),
-      sb.from("workshops").select("*").order("created_at"),
-      sb.from("expenses").select("*").order("spent_on"),
-      sb.from("todo_notes").select("*").order("created_at"),
-      sb.from("board_notes").select("*").order("created_at"),
-      sb.from("workshop_notes").select("*").order("created_at"),
-      sb.from("todo_owners").select("*").order("created_at"),
-    ]));
-    const err = [h,g,s,t,d,w,x,n,b,k,o].find(r => r.error);
-    if (err) throw err.error;
-    S = { hosts:h.data, guests:g.data, signups:s.data, todos:t.data, djs:d.data, workshops:w.data,
-          expenses:x.data, todoNotes:n.data, board:b.data, wsNotes:k.data, owners:o.data };
-    ui.problem = null;
+    pRes = await withTimeout(db.from("players").select("*"));
+    mRes = await withTimeout(db.from("matches").select("*"));
   } catch (e) {
-    ui.problem = "Die Daten kommen gerade nicht durch: " + (e.message || e.code || String(e));
+    busy = false;
+    retry(tries, e && e.message ? e.message : String(e));
+    return;
   }
-  ui.loaded = true;
-  render();
+  busy = false;
+  if (pRes.error || mRes.error){
+    const e = pRes.error || mRes.error;
+    retry(tries, `${e.message}${e.hint ? " — " + e.hint : ""}`);
+    return;
+  }
+  players = pRes.data; matches = mRes.data;
+  refresh();
+  $("stand").textContent = "Stand " + new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
 }
 
-async function write(fn) {
-  if (ui.busy) return;
-  ui.busy = true; render();
-  try {
-    const res = await attempt(fn);
-    if (res && res.error) throw res.error;
-    ui.problem = null;
-  } catch (e) {
-    ui.problem = "Speichern hat nicht geklappt: " + (e.message || e.code || String(e));
+function refresh(){ replay(); render(); renderAlt(); renderH2H(); }
+
+function renderH2H(){
+  const box = $("h2h");
+  if (!box) return;
+  const a = $("h2hA").value, b = $("h2hB").value;
+  if (!a || !b || a === b){
+    box.innerHTML = `<p class="empty">Zwei Personen wählen.</p>`;
+    return;
   }
-  ui.busy = false;
-  await load();
+  const duell = matches.filter(m =>
+    (m.winner === a && m.loser === b) || (m.winner === b && m.loser === a));
+  if (duell.length === 0){
+    box.innerHTML = `<p class="empty">Die beiden haben noch nicht gegeneinander gespielt.</p>`;
+    return;
+  }
+  let pa = 0, pb = 0, wa = 0, wb = 0;
+  duell.forEach(m => {
+    const v = m.mult || 1;
+    if (m.winner === a){ pa += v; wa++; } else { pb += v; wb++; }
+  });
+  box.innerHTML = `
+    <div class="arow">
+      <span class="arank">1</span>
+      <span><span class="aname" data-n="a"></span><br><span class="meta">${siege(wa)}</span></span>
+      <span class="apts">${pa}</span>
+    </div>
+    <div class="arow">
+      <span class="arank">2</span>
+      <span><span class="aname" data-n="b"></span><br><span class="meta">${siege(wb)}</span></span>
+      <span class="apts">${pb}</span>
+    </div>
+    <p class="note">${partien(duell.length)} gegeneinander.</p>`;
+  box.querySelector('[data-n="a"]').textContent = nameOf(a);
+  box.querySelector('[data-n="b"]').textContent = nameOf(b);
 }
 
-const hostName = id => S.hosts.find(h => h.id === id)?.name || "Unbekannt";
-const seatsOf = sid => S.signups.filter(x => x.shift_id === sid);
-const guestsOf = hid => S.guests.filter(g => g.host_id === hid);
-const signupName = x => x.host_id ? hostName(x.host_id) : (x.name || "Unbekannt");
-const ownersOf = id => S.owners.filter(o => o.todo_id === id);
+function altRows(wert){
+  return players
+    .map(p => {
+      const games = stats[p.id] ? stats[p.id].w + stats[p.id].l : 0;
+      let val;
+      if (wert === "elo") val = ratings[p.id];
+      else if (wert === "pm") val = pm[p.id];
+      else val = games ? (plus[p.id] / games) * 10 : null;
+      return { name: p.name, games, val };
+    })
+    .sort((a,b) => {
+      if (a.val === null && b.val === null) return a.name.localeCompare(b.name);
+      if (a.val === null) return 1;
+      if (b.val === null) return -1;
+      return b.val - a.val || a.name.localeCompare(b.name);
+    });
+}
 
-/* ---------------------------- Aktionen ---------------------------- */
+function altText(wert, r){
+  if (r.val === null) return "—";
+  if (wert === "avg") return r.val.toLocaleString("de-DE", {minimumFractionDigits:1, maximumFractionDigits:1});
+  return `${wert === "pm" && r.val > 0 ? "+" : ""}${String(r.val).replace("-", "−")}`;
+}
 
-const actions = {
-  async createHost(name) {
-    try {
-      const { data, error } = await withTimeout(sb.from("hosts").insert({ name }).select().single());
-      if (error) throw error;
-      me = data.id; localStorage.setItem("dsch:me", me);
-      await load();
-    } catch (e) {
-      ui.problem = "Anlegen hat nicht geklappt: " + (e.message || e.code || String(e));
-      render();
+function renderAlt(){
+  [["altElo", "elo"], ["altPm", "pm"], ["altAvg", "avg"]].forEach(([id, wert]) => {
+    const box = $(id);
+    if (!box) return;
+    const rows = altRows(wert);
+    if (rows.length === 0 || matches.length === 0){
+      box.innerHTML = `<p class="empty">Noch keine Partie.</p>`;
+      return;
     }
-  },
-  claim(id) { me = id; if (id) localStorage.setItem("dsch:me", id); else localStorage.removeItem("dsch:me"); render(); },
-  toggleShift(sid) {
-    const shift = SHIFTS.find(s => s.id === sid);
-    const mine = S.signups.find(x => x.shift_id === sid && x.host_id === me);
-    if (mine) return write(() => sb.from("shift_signups").delete().eq("id", mine.id));
-    if (seatsOf(sid).length >= shift.seats) return;
-    return write(() => sb.from("shift_signups").insert({ shift_id: sid, host_id: me }));
-  },
-  addOther(shift_id, name) {
-    ui.addTo = null;
-    const hit = S.hosts.find(h => h.name.toLowerCase() === name.toLowerCase());
-    return write(() => sb.from("shift_signups").insert(hit ? { shift_id, host_id: hit.id } : { shift_id, name }));
-  },
-  removeSignup(id) { return write(() => sb.from("shift_signups").delete().eq("id", id)); },
-  addGuest(name) {
-    return write(() => sb.from("guests").insert({ name, host_id: me }));
-  },
-  updateGuest(id, patch) { return write(() => sb.from("guests").update(patch).eq("id", id)); },
-  deleteGuest(id) { return write(() => sb.from("guests").delete().eq("id", id)); },
-  renameHost(id, name) { return write(() => sb.from("hosts").update({ name }).eq("id", id)); },
-  addTodo(text) { return write(() => sb.from("todos").insert({ text, created_by: me })); },
-  toggleTodo(id) {
-    const t = S.todos.find(x => x.id === id);
-    return write(() => sb.from("todos").update({ done: !t.done, done_by: t.done ? null : me }).eq("id", id));
-  },
-  deleteTodo(id) { return write(() => sb.from("todos").delete().eq("id", id)); },
-  updateTodo(id, text) { return write(() => sb.from("todos").update({ text }).eq("id", id)); },
-  addOwner(todo_id, name) {
-    ui.addOwnerTo = null;
-    const hit = S.hosts.find(h => h.name.toLowerCase() === name.toLowerCase());
-    return write(() => sb.from("todo_owners").insert(hit ? { todo_id, host_id: hit.id } : { todo_id, name }));
-  },
-  removeOwner(id) { return write(() => sb.from("todo_owners").delete().eq("id", id)); },
-  addDj(name, start_time, end_time) { return write(() => sb.from("djs").insert({ name, start_time, end_time })); },
-  deleteDj(id) { return write(() => sb.from("djs").delete().eq("id", id)); },
-  addWorkshop(person, title, description) { return write(() => sb.from("workshops").insert({ person, title, description })); },
-  deleteWorkshop(id) { return write(() => sb.from("workshops").delete().eq("id", id)); },
-  addWsNote(workshop_id, body) { return write(() => sb.from("workshop_notes").insert({ workshop_id, host_id: me, body })); },
-  deleteWsNote(id) { return write(() => sb.from("workshop_notes").delete().eq("id", id)); },
-  addNote(todo_id, body) { return write(() => sb.from("todo_notes").insert({ todo_id, host_id: me, body })); },
-  deleteNote(id) { return write(() => sb.from("todo_notes").delete().eq("id", id)); },
-  addBoardNote(body, parent_id = null) {
-    ui.replyTo = null;
-    return write(() => sb.from("board_notes").insert({ host_id: me, body, parent_id }));
-  },
-  deleteBoardNote(id) { return write(() => sb.from("board_notes").delete().eq("id", id)); },
-  addExpense(host_id, what, amount, spent_on) {
-    return write(() => sb.from("expenses").insert({ host_id, what, amount, spent_on }));
-  },
-  deleteExpense(id) { return write(() => sb.from("expenses").delete().eq("id", id)); },
+    box.innerHTML = rows.map((r,i) => `
+      <div class="arow">
+        <span class="arank">${i+1}</span>
+        <span><span class="aname"></span><br><span class="meta">${partien(r.games)}</span></span>
+        <span class="apts">${altText(wert, r)}</span>
+      </div>`).join("");
+    box.querySelectorAll(".aname").forEach((el,i) => el.textContent = rows[i].name);
+  });
+}
+
+function render(){
+  const rows = players
+    .map(p => ({...p, rating: ratings[p.id], pts: plus[p.id], ...stats[p.id]}))
+    .sort((a,b) => b.pts - a.pts || b.rating - a.rating || a.name.localeCompare(b.name));
+
+  $("table").innerHTML = rows.length === 0
+    ? `<p class="empty">Noch niemand dabei. Unten die erste Spieler*in anlegen.</p>`
+    : rows.map((p,i) => `
+      <div class="row">
+        <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true">
+          <circle cx="16" cy="16" r="15" fill="${(i+1)%2 ? '#F5EFE2' : '#1E1712'}" stroke="#7A5231" stroke-width="1"/>
+          <text x="16" y="21" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="13" font-weight="600" fill="${(i+1)%2 ? '#21160E' : '#F2EADA'}">${i+1}</text>
+        </svg>
+        <div>
+          <div class="pname"></div>
+          <div class="meta">${p.w} S · ${p.l} N · ${partien(p.w+p.l)}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="score">${p.pts}</span>
+          ${p.w+p.l === 0 ? `<button class="ghost" data-delp="${p.id}">löschen</button>` : ``}
+        </div>
+      </div>`).join("");
+  // Namen sicher einsetzen (kein HTML aus Eingaben)
+  $("table").querySelectorAll(".pname").forEach((el,i) => el.textContent = rows[i].name);
+
+  const log = [...matches].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+  if (log.length === 0){
+    $("log").innerHTML = `<p class="empty">Noch keine Partie eingetragen.</p>`;
+  } else {
+    $("log").innerHTML = `<ul class="log">` + log.map(m => m.id === editingId ? `
+        <li class="edit">
+          <div class="field"><label>Gewonnen hat</label><select id="ew"></select></div>
+          <div class="field"><label>Verloren hat</label><select id="el"></select></div>
+          <div class="field"><label>Höhe des Sieges</label>
+            <select id="em">
+              <option value="1">Einfach — 1 Punkt</option>
+              <option value="2">Gammon — 2 Punkte</option>
+              <option value="3">Backgammon — 3 Punkte</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn" data-savem="${m.id}">Speichern</button>
+            <button class="ghost" data-cancel="1">Abbrechen</button>
+          </div>
+        </li>` : `
+        <li>
+          <span><span class="dt"></span><span class="mtxt"></span></span>
+          <span style="display:flex;align-items:center;gap:8px">
+            <span class="d">±${deltas[m.id] ?? 0}</span>
+            <button class="ghost" data-editm="${m.id}">ändern</button>
+            <button class="ghost" data-delm="${m.id}">löschen</button>
+          </span>
+        </li>`).join("") + `</ul>`;
+
+    $("log").querySelectorAll("li").forEach((li,i) => {
+      const m = log[i];
+      const txt = li.querySelector(".mtxt");
+      if (txt){
+        const d = new Date(m.created_at);
+        li.querySelector(".dt").textContent =
+          d.toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit"}) + " " +
+          d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
+        txt.textContent = `${nameOf(m.winner)} schlägt ${nameOf(m.loser)}`
+          + (m.mult>1 ? (m.mult>=3 ? "  BACKGAMMON" : "  GAMMON") : "");
+        return;
+      }
+      ["ew","el"].forEach(id => {
+        const sel = li.querySelector("#"+id);
+        sel.innerHTML = rows.map(p => `<option value="${p.id}"></option>`).join("");
+        [...sel.options].forEach((o,j) => o.textContent = rows[j].name);
+      });
+      li.querySelector("#ew").value = m.winner;
+      li.querySelector("#el").value = m.loser;
+      li.querySelector("#em").value = String(m.mult || 1);
+    });
+  }
+
+  ["win","los","h2hA","h2hB"].forEach(id => {
+    const sel = $(id), keep = sel.value;
+    sel.innerHTML = `<option value="">Spieler*in wählen</option>` +
+      rows.map(p => `<option value="${p.id}"></option>`).join("");
+    [...sel.options].slice(1).forEach((o,i) => o.textContent = rows[i].name);
+    sel.value = keep;
+  });
+  updatePreview();
+}
+
+function updatePreview(){
+  const w = $("win").value, l = $("los").value, m = Number($("mult").value);
+  const ok = w && l && w !== l;
+  $("addMatch").disabled = !ok;
+  $("preview").textContent = ok
+    ? `Ergibt ${m} ${m === 1 ? "Punkt" : "Punkte"} für ${nameOf(w)}`
+    : "";
+}
+["win","los","mult"].forEach(id => $(id).onchange = updatePreview);
+["h2hA","h2hB"].forEach(id => $(id).onchange = renderH2H);
+
+// --- Schreiben ---
+function say(text){ const el = $("msg"); el.textContent = text; el.classList.toggle("hidden", !text); }
+
+$("addPlayer").onclick = async () => {
+  const name = $("newName").value.trim();
+  if (!name) return;
+  let data, error;
+  try { ({ data, error } = await withTimeout(db.from("players").insert({ name }).select())); }
+  catch (e) { return say(e.message); }
+  if (error) return say(error.code === "23505" ? "Den Namen gibt es schon." : "Konnte nicht speichern: " + error.message);
+  if (data && data[0]) players.push(data[0]);
+  $("newName").value = ""; say(""); refresh();
+};
+$("newName").onkeydown = (e) => { if (e.key === "Enter") $("addPlayer").click(); };
+
+$("addMatch").onclick = async () => {
+  const winner = $("win").value, loser = $("los").value, mult = Number($("mult").value);
+  if (!winner || !loser || winner === loser) return;
+  let data, error;
+  try { ({ data, error } = await withTimeout(db.from("matches").insert({ winner, loser, mult }).select())); }
+  catch (e) { return say(e.message); }
+  if (error) return say("Konnte nicht speichern: " + error.message);
+  if (data && data[0]) matches.push(data[0]);
+  $("win").value = ""; $("los").value = ""; $("mult").value = "1"; say(""); refresh();
 };
 
-/* ---------------------------- Ansichten ---------------------------- */
-
-function viewPassword() {
-  return `<div class="gate">
-    <h1>Tanz im Dschungel</h1>
-    <p class="lead">Die Seite ist für unsere Runde. Gib das Wort ein, das ihr euch geschickt habt.</p>
-    <div class="row">
-      <input id="pw" type="password" placeholder="Passwort" autocomplete="current-password" />
-      <button class="go" data-act="pw">Rein</button>
-    </div>
-    <p class="hint" id="pwErr"></p>
-  </div>`;
-}
-
-function viewGate() {
-  const sorted = [...S.hosts].sort((a,b) => a.name.localeCompare(b.name, "de"));
-  return `<div class="gate">
-    <h1>Tanz im Dschungel</h1>
-    <p class="lead">Sag, wer du bist. Danach steht dein Name automatisch an deinen Schichten, Gästen und To-dos.</p>
-    ${ui.problem ? `<p class="problem">${esc(ui.problem)}</p>` : ""}
-    ${sorted.length ? `
-      <h2>Wähl dich aus</h2>
-      <div class="chips">${sorted.map(h => `<button class="chip" data-act="claim" data-id="${h.id}">${esc(h.name)}</button>`).join("")}</div>
-      <p class="gateLabel">Nicht dabei? Dann leg dich neu an.</p>
-    ` : `<h2>Du bist die erste Person hier</h2>`}
-    <div class="row">
-      <input id="newHost" placeholder="Dein Name" />
-      <button class="go" data-act="newHost">Loslegen</button>
-    </div>
-  </div>`;
-}
-
-function ribbon() {
-  const seg = s => {
-    const n = seatsOf(s.id).length;
-    const cls = n === 0 ? "leer" : n < s.seats ? "halb" : "voll";
-    return `<button class="seg ${cls}" style="flex-grow:${s.span[1]-s.span[0]}" data-act="tab" data-tab="schichten" title="${spanLabel(s.span)}"><span>${hh(s.span[0])}</span></button>`;
-  };
-  const row = (kind, from, to) => `<div class="ribRow" style="margin-left:${(from-16)/12*100}%; width:${(to-from)/12*100}%">
-    ${SHIFTS.filter(s => s.kind === kind).map(seg).join("")}</div>`;
-  return `<div class="ribbon">
-    <div class="ribLabel">Bar</div>${row("bar",16,28)}
-    <div class="ribLabel">Einlass</div>${row("einlass",20,26)}
-    <div class="ribScale"><span>16:00</span><span>20:00</span><span>00:00</span><span>04:00</span></div>
-  </div>`;
-}
-
-function viewSchichten() {
-  const open = SHIFTS.reduce((n,s) => n + (s.seats - seatsOf(s.id).length), 0);
-  const mine = SHIFTS.filter(s => seatsOf(s.id).some(x => x.host_id === me)).length;
-  const block = (kind, title, hint) => `<section class="block">
-    <h2>${title}</h2><p class="hint">${hint}</p>
-    <ul class="slots">${SHIFTS.filter(s => s.kind === kind).map(s => {
-      const list = seatsOf(s.id);
-      const isMine = list.some(x => x.host_id === me);
-      const free = s.seats - list.length;
-      const full = free <= 0;
-      return `<li class="slot${isMine ? " mine" : ""}${full && !isMine ? " full" : ""}">
-        <span class="time">${spanLabel(s.span)}</span>
-        <span class="people">
-          ${list.length === 0 ? "<em>frei</em>" : list.map(x => `<span class="pill">${esc(signupName(x))}<button class="link weg" data-act="delSignup" data-id="${x.id}" title="Entfernen">×</button></span>`).join("")}
-          ${list.length && free > 0 ? `<em>+${free} frei</em>` : ""}
-        </span>
-        <span class="slotBtns">
-          <button class="${isMine ? "out" : "in"}" data-act="shift" data-id="${s.id}" ${full && !isMine ? "disabled" : ""}>
-            ${isMine ? "Austragen" : full ? "Voll" : "Ich"}</button>
-          ${free > 0 ? `<button class="link" data-act="addOther" data-id="${s.id}">Andere*n</button>` : ""}
-        </span>
-        ${ui.addTo === s.id ? `<div class="row addOther">
-          <input id="otherName" placeholder="Name der Person" />
-          <button class="go" data-act="saveOther" data-id="${s.id}">Eintragen</button>
-          <button class="link" data-act="cancelOther">Abbrechen</button>
-        </div>` : ""}
-      </li>`;
-    }).join("")}</ul></section>`;
-  return `<p class="tally">${open === 0 ? "Alle Schichten besetzt." : open + " Plätze noch frei."}
-    ${mine ? ` Du hast ${mine} ${mine === 1 ? "Schicht" : "Schichten"}.` : ""}</p>
-    ${block("bar","Bar","16:00 bis 4:00 Uhr, je zwei Stunden zu zweit.")}
-    ${block("einlass","Einlass","20:00 bis 2:00 Uhr, je eine Stunde allein.")}`;
-}
-
-function guestRow(g) {
-  if (ui.editGuest === g.id) {
-    return `<li class="card edit">
-      <input id="gname" value="${esc(g.name)}" />
-      <select id="ghost">${S.hosts.map(h => {
-        const used = S.guests.filter(x => x.host_id === h.id && x.id !== g.id).length;
-        return `<option value="${h.id}" ${h.id === g.host_id ? "selected" : ""}>${esc(h.name)} (${used})</option>`;
-      }).join("")}</select>
-      <button class="link" data-act="saveGuest" data-id="${g.id}">Speichern</button>
-      <button class="link" data-act="cancelGuest">Abbrechen</button>
-    </li>`;
+document.addEventListener("click", async (e) => {
+  const dm = e.target.dataset?.delm, dp = e.target.dataset?.delp;
+  const ed = e.target.dataset?.editm, sv = e.target.dataset?.savem, cn = e.target.dataset?.cancel;
+  if (ed){ editingId = ed; render(); return; }
+  if (cn){ editingId = null; render(); return; }
+  if (sv){
+    const w = $("ew").value, l = $("el").value, mu = Number($("em").value);
+    if (!w || !l || w === l){ say("Gewinner*in und Verlierer*in müssen verschieden sein."); return; }
+    let error;
+    try { ({ error } = await withTimeout(db.from("matches").update({ winner: w, loser: l, mult: mu }).eq("id", sv))); }
+    catch (e) { say(e.message); editingId = null; render(); return; }
+    editingId = null;
+    if (error){ say("Ändern hat nicht geklappt."); load(); return; }
+    say("");
+    const m = matches.find(x => x.id === sv);
+    if (m){ m.winner = w; m.loser = l; m.mult = mu; }
+    refresh();
+    return;
   }
-  return `<li class="card">
-    <span class="grow">${esc(g.name)}</span>
-    <button class="link" data-act="editGuest" data-id="${g.id}">Ändern</button>
-    <button class="link" data-act="delGuest" data-id="${g.id}">Entfernen</button>
-  </li>`;
-}
-
-function hostHead(h, count) {
-  if (ui.editHost === h.id) {
-    return `<div class="row">
-      <input id="hname" value="${esc(h.name)}" />
-      <button class="link" data-act="saveHost" data-id="${h.id}">Speichern</button>
-      <button class="link" data-act="cancelHost">Abbrechen</button>
-    </div>`;
+  if (dm){
+    let error;
+    try { ({ error } = await withTimeout(db.from("matches").delete().eq("id", dm))); }
+    catch (err) { return say(err.message); }
+    if (error){ say("Löschen hat nicht geklappt: " + error.message); return; }
+    matches = matches.filter(x => x.id !== dm); refresh();
   }
-  return `<h3>${esc(h.name)} <span class="count">${count} ${count === 1 ? "Gast" : "Gäste"}</span>
-    <button class="link" data-act="editHost" data-id="${h.id}">Umbenennen</button></h3>`;
-}
-
-function viewGaeste() {
-  const mineList = guestsOf(me);
-  const myHost = S.hosts.find(h => h.id === me);
-  const others = S.hosts.filter(h => h.id !== me && guestsOf(h.id).length);
-  return `<p class="tally">${S.guests.length} Gäste eingetragen, davon ${mineList.length} von dir.</p>
-  <section class="block">
-    <h2>Deine Gäste</h2>
-    ${myHost ? hostHead(myHost, mineList.length) : ""}
-    <div class="row">
-      <input id="guestName" placeholder="Name deines Gasts" />
-      <button class="go" data-act="addGuest">Hinzufügen</button>
-    </div>
-    <ul class="cards">${mineList.length ? mineList.map(guestRow).join("") : `<li class="empty">Noch niemand eingeladen.</li>`}</ul>
-  </section>
-  <section class="block">
-    <h2>Gäste der anderen</h2>
-    <p class="hint">Alle dürfen hier korrigieren, umhängen und streichen – bitte nur in Absprache.</p>
-    ${others.length ? others.map(h => `<div class="group">${hostHead(h, guestsOf(h.id).length)}
-      <ul class="cards">${guestsOf(h.id).map(guestRow).join("")}</ul></div>`).join("")
-      : `<p class="empty">Noch hat niemand sonst Gäste eingetragen.</p>`}
-  </section>`;
-}
-
-function viewTodos() {
-  const offen = S.todos.filter(t => !t.done);
-  const fertig = S.todos.filter(t => t.done);
-  const notesOf = id => S.todoNotes.filter(n => n.todo_id === id);
-  const wann = ts => {
-    const d = new Date(ts);
-    return isNaN(d) ? "" : d.toLocaleString("de-DE", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
-  };
-
-  const notenBlock = t => {
-    const list = notesOf(t.id);
-    return `<div class="notes">
-      ${list.map(n => `<div class="note">
-        <p>${esc(n.body)}</p>
-        <span class="noteMeta">${esc(hostName(n.host_id))} · ${wann(n.created_at)}
-          <button class="link" data-act="delNote" data-id="${n.id}">löschen</button></span>
-      </div>`).join("")}
-      ${list.length ? "" : `<p class="empty" style="padding:0 0 6px">Noch keine Notiz zu dieser Aufgabe.</p>`}
-      <div class="row" style="margin:6px 0 0">
-        <input id="noteInput" placeholder="Notiz schreiben …" />
-        <button class="go" data-act="addNote" data-id="${t.id}">Senden</button>
-      </div>
-    </div>`;
-  };
-
-  const verantwortlich = t => {
-    const list = ownersOf(t.id);
-    return `<div class="owners">
-      <span class="by">Verantwortlich:</span>
-      ${list.length ? list.map(o => `<span class="pill">${esc(signupName(o))}<button class="link weg" data-act="delOwner" data-id="${o.id}" title="Entfernen">×</button></span>`).join("")
-        : `<em class="by">noch niemand</em>`}
-      ${ui.addOwnerTo === t.id
-        ? `<span class="row" style="margin:0; flex-basis:100%">
-             <input id="ownerName" placeholder="Name" />
-             <button class="go" data-act="saveOwner" data-id="${t.id}">Eintragen</button>
-             <button class="link" data-act="cancelOwner">Abbrechen</button>
-           </span>`
-        : `<button class="link" data-act="addOwner" data-id="${t.id}">+ Person</button>`}
-    </div>`;
-  };
-
-  const row = t => {
-    if (ui.editTodo === t.id) return `<li class="card edit">
-      <input id="tdText" value="${esc(t.text)}" />
-      <button class="link" data-act="saveTodo" data-id="${t.id}">Speichern</button>
-      <button class="link" data-act="cancelTodo">Abbrechen</button>
-    </li>`;
-    const n = notesOf(t.id).length;
-    const offen = ui.openTodo === t.id;
-    return `<li class="card todo col${t.done ? " done" : ""}">
-      <div class="todoRow">
-        <input type="checkbox" ${t.done ? "checked" : ""} data-act="todo" data-id="${t.id}" />
-        <button class="todoMain" data-act="openTodo" data-id="${t.id}">
-          <span class="txt">${esc(t.text)}</span>
-          <span class="by">von ${esc(hostName(t.done ? (t.done_by || t.created_by) : t.created_by))}${t.done ? " · erledigt" : ""}${ownersOf(t.id).length ? " · für " + ownersOf(t.id).map(o => esc(signupName(o))).join(", ") : ""}${n ? ` · ${n} ${n === 1 ? "Notiz" : "Notizen"}` : ""}</span>
-        </button>
-        <button class="link" data-act="editTodo" data-id="${t.id}">Ändern</button>
-        <button class="link" data-act="delTodo" data-id="${t.id}">Löschen</button>
-      </div>
-      ${offen ? verantwortlich(t) + notenBlock(t) : ""}
-    </li>`;
-  };
-
-  return `${meineAufgaben()}
-  <section class="block">
-    <h2>Alle To-dos</h2>
-    <p class="hint">Auf eine Aufgabe tippen öffnet die Notizen dazu.</p>
-    <div class="row">
-      <input id="todoText" placeholder="Was muss noch passieren?" />
-      <button class="go" data-act="addTodo">Hinzufügen</button>
-    </div>
-    <ul class="cards">${offen.length ? offen.map(row).join("")
-      : (fertig.length ? "" : `<li class="empty">Noch nichts offen. Schreib das erste rein.</li>`)}</ul>
-    ${fertig.length ? `<h3 class="sub">Erledigt</h3><ul class="cards">${fertig.map(row).join("")}</ul>` : ""}
-  </section>`;
-}
-
-function meineAufgaben() {
-  const meins = S.todos.filter(t => S.owners.some(o => o.todo_id === t.id && o.host_id === me));
-  const offen = meins.filter(t => !t.done);
-  const fertig = meins.filter(t => t.done);
-  const zeile = t => `<li class="card todo${t.done ? " done" : ""}">
-    <label><input type="checkbox" ${t.done ? "checked" : ""} data-act="todo" data-id="${t.id}" />
-      <span class="txt">${esc(t.text)}</span></label>
-  </li>`;
-  return `<section class="block">
-    <h2>Meine Aufgaben</h2>
-    <p class="hint">Alles, wofür du eingetragen bist.</p>
-    ${meins.length
-      ? `<ul class="cards">${offen.map(zeile).join("")}${fertig.map(zeile).join("")}</ul>`
-      : `<p class="empty">Du bist für nichts eingetragen.</p>`}
-  </section>`;
-}
-
-function viewNotizen() {
-  const wann = ts => {
-    const d = new Date(ts);
-    return isNaN(d) ? "" : d.toLocaleString("de-DE", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
-  };
-  const kopf = n => `<p>${esc(n.body)}</p>
-    <span class="noteMeta">${esc(hostName(n.host_id))} · ${wann(n.created_at)}
-      <button class="link" data-act="delBoard" data-id="${n.id}">löschen</button></span>`;
-
-  const oben = S.board.filter(n => !n.parent_id).reverse();
-  const antworten = id => S.board.filter(n => n.parent_id === id);
-
-  return `<section class="block">
-    <h2>Notizen</h2>
-    <p class="hint">Alles, was in keine Liste passt. Einkaufszettel, Absprachen, wer was mitbringt.</p>
-    <div class="row">
-      <input id="boardInput" placeholder="Notiz schreiben …" />
-      <button class="go" data-act="addBoard">Senden</button>
-    </div>
-    <div class="notes" style="border:none; padding-top:0">
-      ${oben.length ? oben.map(n => {
-        const kinder = antworten(n.id);
-        return `<div class="note">
-          ${kopf(n)}
-          ${kinder.length ? `<div class="replies">${kinder.map(k => `<div class="note">${kopf(k)}</div>`).join("")}</div>` : ""}
-          ${ui.replyTo === n.id
-            ? `<div class="row replies" style="margin:8px 0 0">
-                 <input id="replyInput" placeholder="Antwort …" />
-                 <button class="go" data-act="sendReply" data-id="${n.id}">Senden</button>
-                 <button class="link" data-act="cancelReply">Abbrechen</button>
-               </div>`
-            : `<button class="link" data-act="reply" data-id="${n.id}">Antworten</button>`}
-        </div>`;
-      }).join("") : `<p class="empty">Noch nichts notiert.</p>`}
-    </div>
-  </section>`;
-}
-
-const sortKey = t => { const [h,m] = (t || "00:00").split(":").map(Number); const v = h*60+m; return v < 720 ? v + 1440 : v; };
-
-function viewDjs() {
-  const sorted = [...S.djs].sort((a,b) => sortKey(a.start_time) - sortKey(b.start_time));
-  return `<section class="block">
-    <h2>DJ-Timetable</h2>
-    <p class="hint">Start- und Endzeit frei wählbar. Überschneidungen klärt ihr untereinander.</p>
-    <div class="row wrap">
-      <input id="djName" class="grow" placeholder="Wer legt auf?" />
-      <input id="djStart" type="time" aria-label="Start" />
-      <input id="djEnd" type="time" aria-label="Ende" />
-      <button class="go" data-act="addDj">Eintragen</button>
-    </div>
-    <ol class="timetable">${sorted.length ? sorted.map(d => `<li>
-      <span class="slotTime">${esc(d.start_time)} – ${esc(d.end_time)}</span>
-      <span class="djName">${esc(d.name)}</span>
-      <button class="link" data-act="delDj" data-id="${d.id}">Entfernen</button></li>`).join("")
-      : `<li class="empty">Noch kein Set eingetragen.</li>`}</ol>
-  </section>`;
-}
-
-function viewWorkshops() {
-  const wann = ts => {
-    const d = new Date(ts);
-    return isNaN(d) ? "" : d.toLocaleString("de-DE", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
-  };
-  const komm = id => S.wsNotes.filter(n => n.workshop_id === id);
-
-  return `<section class="block">
-    <h2>Workshops</h2>
-    <div class="form">
-      <input id="wsPerson" placeholder="Name" />
-      <input id="wsTitle" placeholder="Titel" />
-      <textarea id="wsDesc" rows="3" placeholder="Worum geht's? Was braucht ihr?"></textarea>
-      <button class="go wide" data-act="addWs">Workshop eintragen</button>
-    </div>
-    <p class="hint">Auf einen Workshop tippen öffnet die Kommentare dazu.</p>
-    <ul class="cards">${S.workshops.length ? S.workshops.map(w => {
-      const list = komm(w.id);
-      const offen = ui.openWs === w.id;
-      return `<li class="card ws col">
-        <div class="todoRow">
-          <button class="todoMain" data-act="openWs" data-id="${w.id}">
-            <h3>${esc(w.title)}</h3>
-            <span class="by">mit ${esc(w.person)}${list.length ? ` · ${list.length} ${list.length === 1 ? "Kommentar" : "Kommentare"}` : ""}</span>
-          </button>
-          <button class="link" data-act="delWs" data-id="${w.id}">Entfernen</button>
-        </div>
-        ${w.description ? `<p class="desc">${esc(w.description)}</p>` : ""}
-        ${offen ? `<div class="notes">
-          ${list.map(n => `<div class="note">
-            <p>${esc(n.body)}</p>
-            <span class="noteMeta">${esc(hostName(n.host_id))} · ${wann(n.created_at)}
-              <button class="link" data-act="delWsNote" data-id="${n.id}">löschen</button></span>
-          </div>`).join("")}
-          ${list.length ? "" : `<p class="empty" style="padding:0 0 6px">Noch kein Kommentar.</p>`}
-          <div class="row" style="margin:6px 0 0">
-            <input id="wsNoteInput" placeholder="Kommentar schreiben …" />
-            <button class="go" data-act="addWsNote" data-id="${w.id}">Senden</button>
-          </div>
-        </div>` : ""}
-      </li>`;
-    }).join("") : `<li class="empty">Noch keine Workshops. Trag deinen ein.</li>`}</ul>
-  </section>`;
-}
-
-function viewAuslagen() {
-  const euro = n => (Number(n) || 0).toFixed(2).replace(".", ",") + " €";
-  const datum = d => d ? d.split("-").reverse().join(".") : "";
-  const sorted = [...S.expenses].sort((a,b) => (a.spent_on || "").localeCompare(b.spent_on || ""));
-  const gesamt = S.expenses.reduce((n,e) => n + Number(e.amount || 0), 0);
-  const proKopf = S.hosts.map(h => ({
-    name: h.name,
-    summe: S.expenses.filter(e => e.host_id === h.id).reduce((n,e) => n + Number(e.amount || 0), 0),
-  })).filter(x => x.summe > 0).sort((a,b) => b.summe - a.summe);
-  const heute = new Date().toISOString().slice(0,10);
-
-  return `<p class="tally">${gesamt > 0 ? "Bisher " + euro(gesamt) + " ausgelegt." : "Noch nichts ausgelegt."}</p>
-  <section class="block">
-    <h2>Auslage eintragen</h2>
-    <div class="form">
-      <select id="exHost">${S.hosts.map(h => `<option value="${h.id}" ${h.id === me ? "selected" : ""}>${esc(h.name)}</option>`).join("")}</select>
-      <input id="exWhat" placeholder="Wofür? z. B. Getränke, Lichterketten" />
-      <div class="row" style="margin:0">
-        <input id="exAmount" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Betrag in €" />
-        <input id="exDate" type="date" value="${heute}" aria-label="Wann" />
-      </div>
-      <button class="go wide" data-act="addEx">Eintragen</button>
-    </div>
-  </section>
-  <section class="block">
-    <h2>Alle Auslagen</h2>
-    <ul class="cards">${sorted.length ? sorted.map(e => `<li class="card">
-      <div class="grow"><strong>${esc(e.what)}</strong>
-        <p class="by" style="margin:2px 0 0">${esc(hostName(e.host_id))} · ${datum(e.spent_on)}</p></div>
-      <span class="betrag">${euro(e.amount)}</span>
-      <button class="link" data-act="delEx" data-id="${e.id}">Entfernen</button></li>`).join("")
-      : `<li class="empty">Noch keine Auslage eingetragen.</li>`}</ul>
-  </section>
-  ${proKopf.length ? `<section class="block">
-    <h2>Wer hat wie viel ausgelegt</h2>
-    <ul class="cards">${proKopf.map(x => `<li class="card">
-      <span class="grow">${esc(x.name)}</span><span class="betrag">${euro(x.summe)}</span></li>`).join("")}
-      <li class="card"><span class="grow"><strong>Gesamt</strong></span><span class="betrag"><strong>${euro(gesamt)}</strong></span></li>
-    </ul></section>` : ""}`;
-}
-
-/* ----------------------------- Rendern ----------------------------- */
-
-function render() {
-  const focused = document.activeElement?.id;
-  const pos = document.activeElement?.selectionStart;
-  const vals = {};
-  app.querySelectorAll("input, textarea, select").forEach(el => {
-    if (el.id && el.type !== "checkbox") vals[el.id] = el.value;
-  });
-
-  if (localStorage.getItem("dsch:pw") !== PASSWORT) { app.innerHTML = viewPassword(); return restore(focused, pos, vals); }
-  if (!ui.loaded) { app.innerHTML = `<p class="boot">Lade die Party …</p>`; return; }
-  if (!me || !S.hosts.some(h => h.id === me)) { app.innerHTML = viewGate(); return restore(focused, pos, vals); }
-
-  const openTodos = S.todos.filter(t => !t.done).length;
-  const tabs = [["schichten","Schichten"],["gaeste","Gästeliste"],["todos","To-dos"],["notizen","Notizen"],["djs","DJ-Timetable"],["workshops","Workshops"],["auslagen","Auslagen"]];
-  const body = { schichten:viewSchichten, gaeste:viewGaeste, todos:viewTodos, notizen:viewNotizen, djs:viewDjs, workshops:viewWorkshops, auslagen:viewAuslagen }[tab]();
-
-  app.innerHTML = `
-    <header class="top">
-      <div class="topline"><h1>Tanz im Dschungel</h1>
-        <button class="who" data-act="switch">${esc(hostName(me))}<span class="whoHint">wechseln</span></button></div>
-    </header>
-    <nav class="tabs">${tabs.map(([k,t]) => `<button class="tab${tab === k ? " on" : ""}" data-act="tab" data-tab="${k}">${t}
-      ${k === "gaeste" && S.guests.length ? `<span class="badge">${S.guests.length}</span>` : ""}
-      ${k === "todos" && openTodos ? `<span class="badge">${openTodos}</span>` : ""}</button>`).join("")}</nav>
-    ${tab === "schichten" ? ribbon() : ""}
-    ${ui.problem ? `<p class="problem">${ui.problem}</p>` : ""}
-    <main>${body}</main>
-    <footer class="foot"><span>${ui.busy ? "Speichere …" : "Alle sehen dieselben Listen."}</span>
-      <button class="link" data-act="reload">Neu laden</button></footer>`;
-  restore(focused, pos, vals);
-}
-
-function restore(id, pos, vals) {
-  if (vals) {
-    for (const key in vals) {
-      const el = document.getElementById(key);
-      if (el && vals[key] !== "" && el.value === "") el.value = vals[key];
-    }
-  }
-  if (!id) return;
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.focus();
-  if (pos != null && el.setSelectionRange) { try { el.setSelectionRange(pos, pos); } catch {} }
-}
-
-const val = id => (document.getElementById(id)?.value || "").trim();
-
-// Wert auslesen und Feld leeren – sonst steht der Text nach dem Absenden noch drin.
-function take(id) {
-  const el = document.getElementById(id);
-  if (!el) return "";
-  const v = (el.value || "").trim();
-  el.value = "";
-  return v;
-}
-
-/* --------------------------- Interaktion --------------------------- */
-
-document.addEventListener("click", e => {
-  const el = e.target.closest("[data-act]");
-  if (!el) return;
-  const id = el.dataset.id;
-  switch (el.dataset.act) {
-    case "pw": {
-      if (val("pw") === PASSWORT) { localStorage.setItem("dsch:pw", PASSWORT); render(); load(); }
-      else document.getElementById("pwErr").textContent = "Das war nicht das Wort. Frag nochmal in der Gruppe nach.";
-      break;
-    }
-    case "claim": actions.claim(id); break;
-    case "newHost": { const n = take("newHost"); if (!n) break;
-      const hit = S.hosts.find(h => h.name.toLowerCase() === n.toLowerCase());
-      hit ? actions.claim(hit.id) : actions.createHost(n); break; }
-    case "switch": actions.claim(null); break;
-    case "tab": tab = el.dataset.tab; render(); break;
-    case "reload": load(); break;
-    case "shift": actions.toggleShift(id); break;
-    case "addOther": ui.addTo = id; render(); break;
-    case "cancelOther": ui.addTo = null; render(); break;
-    case "saveOther": { const n = take("otherName"); if (n) actions.addOther(id, n); else { ui.addTo = null; render(); } break; }
-    case "delSignup": actions.removeSignup(id); break;
-    case "addGuest": { const n = take("guestName"); if (n) actions.addGuest(n); break; }
-    case "editGuest": ui.editGuest = id; render(); break;
-    case "cancelGuest": ui.editGuest = null; render(); break;
-    case "saveGuest": { const name = val("gname"); const host_id = document.getElementById("ghost").value;
-      ui.editGuest = null; if (name) actions.updateGuest(id, { name, host_id }); else render(); break; }
-    case "delGuest": actions.deleteGuest(id); break;
-    case "editHost": ui.editHost = id; render(); break;
-    case "cancelHost": ui.editHost = null; render(); break;
-    case "saveHost": { const name = val("hname"); ui.editHost = null;
-      if (name) actions.renameHost(id, name); else render(); break; }
-    case "addTodo": { const t = take("todoText"); if (t) actions.addTodo(t); break; }
-    case "todo": actions.toggleTodo(id); break;
-    case "delTodo": actions.deleteTodo(id); break;
-    case "editTodo": ui.editTodo = id; render(); break;
-    case "cancelTodo": ui.editTodo = null; render(); break;
-    case "saveTodo": { const t = val("tdText"); ui.editTodo = null;
-      if (t) actions.updateTodo(id, t); else render(); break; }
-    case "addDj": { const n = val("djName"), s = val("djStart"), t = val("djEnd");
-      if (!n || !s || !t) break;
-      take("djName"); take("djStart"); take("djEnd");
-      actions.addDj(n, s, t); break; }
-    case "delDj": actions.deleteDj(id); break;
-    case "addWs": { const p = val("wsPerson"), t = val("wsTitle"), d = val("wsDesc");
-      if (!p || !t) break;
-      take("wsPerson"); take("wsTitle"); take("wsDesc");
-      actions.addWorkshop(p, t, d); break; }
-    case "delWs": actions.deleteWorkshop(id); break;
-    case "openWs": ui.openWs = ui.openWs === id ? null : id; render(); break;
-    case "addWsNote": { const b = take("wsNoteInput"); if (b) actions.addWsNote(id, b); break; }
-    case "delWsNote": actions.deleteWsNote(id); break;
-    case "openTodo": ui.openTodo = ui.openTodo === id ? null : id; render(); break;
-    case "addNote": { const b = take("noteInput"); if (b) actions.addNote(id, b); break; }
-    case "delNote": actions.deleteNote(id); break;
-    case "addOwner": ui.addOwnerTo = id; render(); break;
-    case "cancelOwner": ui.addOwnerTo = null; render(); break;
-    case "saveOwner": { const n = take("ownerName"); if (n) actions.addOwner(id, n); else { ui.addOwnerTo = null; render(); } break; }
-    case "delOwner": actions.removeOwner(id); break;
-    case "addBoard": { const b = take("boardInput"); if (b) actions.addBoardNote(b); break; }
-    case "delBoard": actions.deleteBoardNote(id); break;
-    case "reply": ui.replyTo = id; render(); break;
-    case "cancelReply": ui.replyTo = null; render(); break;
-    case "sendReply": { const b = take("replyInput"); if (b) actions.addBoardNote(b, id); else { ui.replyTo = null; render(); } break; }
-    case "addEx": {
-      const host_id = document.getElementById("exHost")?.value;
-      const what = val("exWhat"), amount = val("exAmount"), spent_on = val("exDate");
-      if (!host_id || !what) break;
-      take("exWhat"); take("exAmount");
-      actions.addExpense(host_id, what, amount === "" ? null : Number(amount.replace(",", ".")), spent_on || null);
-      break; }
-    case "delEx": actions.deleteExpense(id); break;
+  if (dp){
+    let error;
+    try { ({ error } = await withTimeout(db.from("players").delete().eq("id", dp))); }
+    catch (err) { return say(err.message); }
+    if (error){ say("Löschen hat nicht geklappt: " + error.message); return; }
+    players = players.filter(x => x.id !== dp); refresh();
   }
 });
 
-document.addEventListener("keydown", e => {
-  if (e.key !== "Enter" || e.target.tagName === "TEXTAREA") return;
-  const map = { pw:"pw", newHost:"newHost", guestName:"addGuest", todoText:"addTodo" };
-  const act = map[e.target.id];
-  if (act) { e.preventDefault(); document.querySelector(`[data-act="${act}"]`)?.click(); }
-  if (e.target.id === "gname") document.querySelector('[data-act="saveGuest"]')?.click();
-  if (e.target.id === "tdText") document.querySelector('[data-act="saveTodo"]')?.click();
-  if (e.target.id === "noteInput") document.querySelector('[data-act="addNote"]')?.click();
-  if (e.target.id === "boardInput") document.querySelector('[data-act="addBoard"]')?.click();
-  if (e.target.id === "replyInput") document.querySelector('[data-act="sendReply"]')?.click();
-  if (e.target.id === "otherName") document.querySelector('[data-act="saveOther"]')?.click();
-  if (e.target.id === "wsNoteInput") document.querySelector('[data-act="addWsNote"]')?.click();
-  if (e.target.id === "ownerName") document.querySelector('[data-act="saveOwner"]')?.click();
-  if (e.target.id === "hname") document.querySelector('[data-act="saveHost"]')?.click();
-});
-
-document.addEventListener("input", e => {
-});
-
-// Nicht aktualisieren, solange jemand tippt oder etwas Halbfertiges im Feld steht.
-function amTippen() {
-  const a = document.activeElement;
-  if (a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.tagName === "SELECT")) return true;
-  return [...app.querySelectorAll("input, textarea")]
-    .some(el => el.type !== "checkbox" && el.value.trim() !== "");
-}
-
-setInterval(() => {
-  if (document.visibilityState !== "visible") return;
-  if (ui.busy || ui.editGuest || ui.editHost || ui.editTodo || ui.replyTo || ui.addTo || ui.addOwnerTo || amTippen()) return;
-  load();
-}, 60000);
-
-document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible" && !amTippen()) load();
-});
-
-if (localStorage.getItem("dsch:pw") === PASSWORT) load(); else render();
+$("reload").onclick = () => { busy = false; load(); };
 </script>
 </body>
 </html>
