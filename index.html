@@ -169,7 +169,6 @@ const PASSWORT     = "doppelsechs";
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const GUEST_LIMIT = 9;
 const EINLASS = [[20,21],[21,22],[22,23],[23,24],[24,25],[25,26]];
 const BAR     = [[16,18],[18,20],[20,22],[22,24],[24,26],[26,28]];
 const SHIFTS = [
@@ -277,7 +276,6 @@ const actions = {
   },
   removeSignup(id) { return write(() => sb.from("shift_signups").delete().eq("id", id)); },
   addGuest(name) {
-    if (guestsOf(me).length >= GUEST_LIMIT) return;
     return write(() => sb.from("guests").insert({ name, host_id: me }));
   },
   updateGuest(id, patch) { return write(() => sb.from("guests").update(patch).eq("id", id)); },
@@ -402,7 +400,7 @@ function guestRow(g) {
       <input id="gname" value="${esc(g.name)}" />
       <select id="ghost">${S.hosts.map(h => {
         const used = S.guests.filter(x => x.host_id === h.id && x.id !== g.id).length;
-        return `<option value="${h.id}" ${h.id === g.host_id ? "selected" : ""} ${used >= GUEST_LIMIT ? "disabled" : ""}>${esc(h.name)} (${used}/${GUEST_LIMIT})</option>`;
+        return `<option value="${h.id}" ${h.id === g.host_id ? "selected" : ""}>${esc(h.name)} (${used})</option>`;
       }).join("")}</select>
       <button class="link" data-act="saveGuest" data-id="${g.id}">Speichern</button>
       <button class="link" data-act="cancelGuest">Abbrechen</button>
@@ -423,24 +421,22 @@ function hostHead(h, count) {
       <button class="link" data-act="cancelHost">Abbrechen</button>
     </div>`;
   }
-  return `<h3>${esc(h.name)} <span class="count">${count}/${GUEST_LIMIT}</span>
+  return `<h3>${esc(h.name)} <span class="count">${count} ${count === 1 ? "Gast" : "Gäste"}</span>
     <button class="link" data-act="editHost" data-id="${h.id}">Umbenennen</button></h3>`;
 }
 
 function viewGaeste() {
   const mineList = guestsOf(me);
-  const left = GUEST_LIMIT - mineList.length;
   const myHost = S.hosts.find(h => h.id === me);
   const others = S.hosts.filter(h => h.id !== me && guestsOf(h.id).length);
-  return `<p class="tally">${S.guests.length} Gäste eingetragen. Du hast noch ${left} von ${GUEST_LIMIT} Plätzen.</p>
+  return `<p class="tally">${S.guests.length} Gäste eingetragen, davon ${mineList.length} von dir.</p>
   <section class="block">
     <h2>Deine Gäste</h2>
     ${myHost ? hostHead(myHost, mineList.length) : ""}
     <div class="row">
-      <input id="guestName" placeholder="Name deines Gasts" ${left <= 0 ? "disabled" : ""} />
-      <button class="go" data-act="addGuest" ${left <= 0 ? "disabled" : ""}>Hinzufügen</button>
+      <input id="guestName" placeholder="Name deines Gasts" />
+      <button class="go" data-act="addGuest">Hinzufügen</button>
     </div>
-    ${left <= 0 ? `<p class="hint">Deine neun Plätze sind vergeben. Nimm jemanden raus oder schieb ihn auf jemand anderen.</p>` : ""}
     <ul class="cards">${mineList.length ? mineList.map(guestRow).join("") : `<li class="empty">Noch niemand eingeladen.</li>`}</ul>
   </section>
   <section class="block">
