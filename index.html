@@ -119,6 +119,7 @@ select{font-size:14px; padding:8px 10px; max-width:100%;}
   padding:0; text-align:left; color:inherit; font-size:15px; line-height:1.4;}
 .todoMain .by{white-space:normal;}
 .todo.done .txt{text-decoration:line-through; color:var(--soft);}
+.gname{display:flex; flex-direction:column; gap:1px;}
 .notes{border-top:1px solid var(--line); margin-top:10px; padding-top:10px;}
 .note{padding:6px 0; border-bottom:1px solid rgba(201,210,188,.5);}
 .note p{margin:0; white-space:pre-wrap;}
@@ -182,7 +183,7 @@ const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt
 let S = { hosts:[], guests:[], signups:[], todos:[], djs:[], workshops:[], expenses:[], todoNotes:[], board:[], wsNotes:[], owners:[] };
 let me = localStorage.getItem("dsch:me");
 let tab = "schichten";
-let ui = { editGuest:null, editHost:null, editTodo:null, openTodo:null, openWs:null, addOwnerTo:null, replyTo:null, addTo:null, busy:false, problem:null, loaded:false };
+let ui = { suche:"", editGuest:null, editHost:null, editTodo:null, openTodo:null, openWs:null, addOwnerTo:null, replyTo:null, addTo:null, busy:false, problem:null, loaded:false };
 const app = document.getElementById("app");
 
 /* ------------------------------ Daten ------------------------------ */
@@ -280,6 +281,10 @@ const actions = {
   },
   updateGuest(id, patch) { return write(() => sb.from("guests").update(patch).eq("id", id)); },
   deleteGuest(id) { return write(() => sb.from("guests").delete().eq("id", id)); },
+  toggleArrived(id) {
+    const g = S.guests.find(x => x.id === id);
+    return write(() => sb.from("guests").update({ arrived: !g.arrived }).eq("id", id));
+  },
   renameHost(id, name) { return write(() => sb.from("hosts").update({ name }).eq("id", id)); },
   addTodo(text) { return write(() => sb.from("todos").insert({ text, created_by: me })); },
   toggleTodo(id) {
@@ -445,6 +450,31 @@ function viewGaeste() {
     ${others.length ? others.map(h => `<div class="group">${hostHead(h, guestsOf(h.id).length)}
       <ul class="cards">${guestsOf(h.id).map(guestRow).join("")}</ul></div>`).join("")
       : `<p class="empty">Noch hat niemand sonst Gäste eingetragen.</p>`}
+  </section>`;
+}
+
+function viewEinlass() {
+  const q = ui.suche.trim().toLowerCase();
+  const alle = [...S.guests].sort((a, b) => a.name.localeCompare(b.name, "de"));
+  const liste = q
+    ? alle.filter(g => g.name.toLowerCase().includes(q) || hostName(g.host_id).toLowerCase().includes(q))
+    : alle;
+  const da = S.guests.filter(g => g.arrived).length;
+
+  return `<section class="block">
+    <h2>Einlassliste</h2>
+    <p class="tally">${da} von ${S.guests.length} da.</p>
+    <div class="row">
+      <input id="gsearch" placeholder="Nach Name suchen …" value="${esc(ui.suche)}" />
+      ${q ? `<button class="link" data-act="clearSuche">Zurücksetzen</button>` : ""}
+    </div>
+    <ul class="cards">${liste.length ? liste.map(g => `<li class="card todo${g.arrived ? " done" : ""}">
+      <label><input type="checkbox" ${g.arrived ? "checked" : ""} data-act="arrived" data-id="${g.id}" />
+        <span class="gname">
+          <span class="txt">${esc(g.name)}</span>
+          <span class="by">eingeladen von ${esc(hostName(g.host_id))}</span>
+        </span></label>
+    </li>`).join("") : `<li class="empty">Niemand gefunden.</li>`}</ul>
   </section>`;
 }
 
@@ -702,8 +732,8 @@ function render() {
   if (!me || !S.hosts.some(h => h.id === me)) { app.innerHTML = viewGate(); return restore(focused, pos, vals); }
 
   const openTodos = S.todos.filter(t => !t.done).length;
-  const tabs = [["schichten","Schichten"],["gaeste","Gästeliste"],["todos","To-dos"],["notizen","Notizen"],["djs","DJ-Timetable"],["workshops","Workshops"],["auslagen","Auslagen"]];
-  const body = { schichten:viewSchichten, gaeste:viewGaeste, todos:viewTodos, notizen:viewNotizen, djs:viewDjs, workshops:viewWorkshops, auslagen:viewAuslagen }[tab]();
+  const tabs = [["schichten","Schichten"],["gaeste","Gästeliste"],["einlass","Einlassliste"],["todos","To-dos"],["notizen","Notizen"],["djs","DJ-Timetable"],["workshops","Workshops"],["auslagen","Auslagen"]];
+  const body = { schichten:viewSchichten, gaeste:viewGaeste, einlass:viewEinlass, todos:viewTodos, notizen:viewNotizen, djs:viewDjs, workshops:viewWorkshops, auslagen:viewAuslagen }[tab]();
 
   app.innerHTML = `
     <header class="top">
@@ -776,6 +806,8 @@ document.addEventListener("click", e => {
     case "saveGuest": { const name = val("gname"); const host_id = document.getElementById("ghost").value;
       ui.editGuest = null; if (name) actions.updateGuest(id, { name, host_id }); else render(); break; }
     case "delGuest": actions.deleteGuest(id); break;
+    case "arrived": actions.toggleArrived(id); break;
+    case "clearSuche": ui.suche = ""; render(); break;
     case "editHost": ui.editHost = id; render(); break;
     case "cancelHost": ui.editHost = null; render(); break;
     case "saveHost": { const name = val("hname"); ui.editHost = null;
@@ -821,6 +853,10 @@ document.addEventListener("click", e => {
       break; }
     case "delEx": actions.deleteExpense(id); break;
   }
+});
+
+document.addEventListener("input", e => {
+  if (e.target.id === "gsearch") { ui.suche = e.target.value; render(); }
 });
 
 document.addEventListener("keydown", e => {
